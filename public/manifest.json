@@ -1,0 +1,27 @@
+{
+  "id": "/",
+  "name": "MANGOREMA — Super-App Outdoor Gabon",
+  "short_name": "MANGOREMA",
+  "description": "Super-App écotourisme et plein air au Gabon : expéditions, cartographie sentiers et risques, navettes Libreville et paiement Airtel / Moov Money.",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "orientation": "portrait",
+  "theme_color": "#080B09",
+  "background_color": "#080B09",
+  "categories": ["travel", "navigation", "sports"],
+  "icons": [
+    {
+      "src": "/logo.jpg",
+      "sizes": "512x512",
+      "type": "image/jpeg",
+      "purpose": "any"
+    },
+    {
+      "src": "/logo.jpg",
+      "sizes": "512x512",
+      "type": "image/jpeg",
+      "purpose": "maskable"
+    }
+  ]
+}

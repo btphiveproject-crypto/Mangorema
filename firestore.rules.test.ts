@@ -1,0 +1,181 @@
+/**
+ * @license
+ * SPDX-License-Identifier: Apache-2.0
+ */
+
+/**
+ * Security TDD verification specification for MANGOREMA firestore.rules
+ * Covers all 12 Dirty Dozen adversarial payloads defined in security_spec.md.
+ */
+
+export const DIRTY_DOZEN_PAYLOADS = [
+  {
+    name: '1. Unauthenticated read on /users/alice',
+    operation: 'get',
+    path: '/users/alice',
+    auth: null,
+    expected: 'PERMISSION_DENIED',
+  },
+  {
+    name: '2. Unverified email spoofing on UserProfile create',
+    operation: 'create',
+    path: '/users/bob',
+    auth: { uid: 'bob', token: { email: 'bob@example.com', email_verified: false } },
+    data: {
+      uid: 'bob',
+      name: 'Bob',
+      email: 'bob@example.com',
+      totalKm: 0,
+      totalAscent: 0,
+      stepsCount: 0,
+      subscription: 'Starter (500 F)',
+    },
+    expected: 'PERMISSION_DENIED',
+  },
+  {
+    name: '3. Cross-user PII read on /users/alice',
+    operation: 'get',
+    path: '/users/alice',
+    auth: { uid: 'bob', token: { email: 'bob@example.com', email_verified: true } },
+    expected: 'PERMISSION_DENIED',
+  },
+  {
+    name: '4. Collection scraping (list) on /users',
+    operation: 'list',
+    path: '/users',
+    auth: { uid: 'bob', token: { email: 'bob@example.com', email_verified: true } },
+    expected: 'PERMISSION_DENIED',
+  },
+  {
+    name: '5. Shadow / Ghost field injection (isAdmin: true) on UserProfile',
+    operation: 'create',
+    path: '/users/alice',
+    auth: { uid: 'alice', token: { email: 'alice@example.com', email_verified: true } },
+    data: {
+      uid: 'alice',
+      name: 'Alice',
+      email: 'alice@example.com',
+      totalKm: 0,
+      totalAscent: 0,
+      stepsCount: 0,
+      subscription: 'Starter (500 F)',
+      isAdmin: true,
+    },
+    expected: 'PERMISSION_DENIED',
+  },
+  {
+    name: '6. Oversized topThreePhotoIds (>3 items)',
+    operation: 'update',
+    path: '/users/alice',
+    auth: { uid: 'alice', token: { email: 'alice@example.com', email_verified: true } },
+    data: {
+      topThreePhotoIds: ['p1', 'p2', 'p3', 'p4'],
+    },
+    expected: 'PERMISSION_DENIED',
+  },
+  {
+    name: '7. ID Poisoning on bookingId with invalid chars',
+    operation: 'create',
+    path: '/users/alice/bookings/bad..id!',
+    auth: { uid: 'alice', token: { email: 'alice@example.com', email_verified: true } },
+    expected: 'PERMISSION_DENIED',
+  },
+  {
+    name: '8. Orphaned Booking without parent /users/alice doc (Master Gate)',
+    operation: 'create',
+    path: '/users/alice/bookings/bk-1',
+    auth: { uid: 'alice', token: { email: 'alice@example.com', email_verified: true } },
+    expected: 'PERMISSION_DENIED',
+  },
+  {
+    name: '9. Identity Spoofing in subcollection by user bob',
+    operation: 'create',
+    path: '/users/alice/bookings/bk-1',
+    auth: { uid: 'bob', token: { email: 'bob@example.com', email_verified: true } },
+    data: { userId: 'alice' },
+    expected: 'PERMISSION_DENIED',
+  },
+  {
+    name: '10. Client-forged createdAt timestamp not matching request.time',
+    operation: 'create',
+    path: '/users/alice',
+    auth: { uid: 'alice', token: { email: 'alice@example.com', email_verified: true } },
+    data: {
+      uid: 'alice',
+      createdAt: '2020-01-01T00:00:00Z',
+    },
+    expected: 'PERMISSION_DENIED',
+  },
+  {
+    name: '11. Terminal State Reversal (USED -> CONFIRMED)',
+    operation: 'update',
+    path: '/users/alice/bookings/bk-1',
+    auth: { uid: 'alice', token: { email: 'alice@example.com', email_verified: true } },
+    data: { status: 'CONFIRMED' },
+    expected: 'PERMISSION_DENIED',
+  },
+  {
+    name: '12. Immutable field tampering (totalAmount) on Booking update',
+    operation: 'update',
+    path: '/users/alice/bookings/bk-1',
+    auth: { uid: 'alice', token: { email: 'alice@example.com', email_verified: true } },
+    data: { totalAmount: 0 },
+    expected: 'PERMISSION_DENIED',
+  },
+  {
+    name: '13. Out-of-bounds rating (rating: 6) on ExpeditionReview create',
+    operation: 'create',
+    path: '/expedition_reviews/rev-1',
+    auth: { uid: 'alice', token: { email: 'alice@example.com', email_verified: true } },
+    data: {
+      id: 'rev-1',
+      eventId: 'evt-1',
+      userId: 'alice',
+      authorName: 'Alice',
+      rating: 6,
+      comment: 'Superbe sortie en forêt !',
+      visibility: 'PUBLIC',
+      createdAtLabel: '18 Nov 2026',
+    },
+    expected: 'PERMISSION_DENIED',
+  },
+  {
+    name: '14. Cross-user deletion on ExpeditionReview by non-author bob',
+    operation: 'delete',
+    path: '/expedition_reviews/rev-alice',
+    auth: { uid: 'bob', token: { email: 'bob@example.com', email_verified: true } },
+    expected: 'PERMISSION_DENIED',
+  },
+  {
+    name: '15. Unpledged or inflated EcoChallenge create (wasteBagReturned: false)',
+    operation: 'create',
+    path: '/users/alice/eco_challenges/eco-evt-1',
+    auth: { uid: 'alice', token: { email: 'alice@example.com', email_verified: true } },
+    data: {
+      id: 'eco-evt-1',
+      userId: 'alice',
+      eventId: 'evt-1',
+      eventTitle: 'Bivouac & Canopee Mondah',
+      parkName: 'Parc National de la Mondah',
+      badgeId: 'badge-zero-mondah',
+      badgeName: 'Gardien de la Mondah',
+      badgeIcon: '🌿',
+      wasteBagReturned: false,
+      leaveNoTracePledge: true,
+      ecoPoints: 99999,
+      completedAtLabel: '18 Nov 2026',
+    },
+    expected: 'PERMISSION_DENIED',
+  },
+  {
+    name: '16. Cross-user EcoChallenge write spoofing by bob',
+    operation: 'create',
+    path: '/users/alice/eco_challenges/eco-evt-1',
+    auth: { uid: 'bob', token: { email: 'bob@example.com', email_verified: true } },
+    data: {
+      id: 'eco-evt-1',
+      userId: 'alice',
+    },
+    expected: 'PERMISSION_DENIED',
+  },
+];

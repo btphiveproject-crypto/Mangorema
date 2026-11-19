@@ -1,0 +1,376 @@
+{
+  "entities": {
+    "UserProfile": {
+      "title": "UserProfile",
+      "description": "Profil utilisateur MANGOREMA synchronisé avec Google Sign-In et statistiques de randonnée.",
+      "type": "object",
+      "properties": {
+        "uid": {
+          "type": "string",
+          "pattern": "^[a-zA-Z0-9_\\-]+$",
+          "maxLength": 128,
+          "description": "Identifiant unique Firebase Auth de l'utilisateur."
+        },
+        "name": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 100,
+          "description": "Nom complet affiché sur le profil."
+        },
+        "role": {
+          "type": "string",
+          "maxLength": 80,
+          "description": "Rôle ou niveau écotouriste."
+        },
+        "phone": {
+          "type": "string",
+          "maxLength": 40,
+          "description": "Numéro Mobile Money gabonais."
+        },
+        "email": {
+          "type": "string",
+          "format": "email",
+          "maxLength": 160,
+          "description": "Adresse e-mail vérifiée via Google Sign-In."
+        },
+        "avatar": {
+          "type": "string",
+          "maxLength": 500,
+          "description": "URL de la photo de profil."
+        },
+        "totalKm": {
+          "type": "number",
+          "description": "Distance cumulée parcourue en kilomètres."
+        },
+        "totalAscent": {
+          "type": "number",
+          "description": "Dénivelé positif cumulé en mètres."
+        },
+        "stepsCount": {
+          "type": "number",
+          "description": "Nombre total de pas enregistrés."
+        },
+        "subscription": {
+          "type": "string",
+          "enum": ["Starter (500 F)", "Club Medium (1 000 F)", "Pro Expé (2 000 F)"],
+          "description": "Formule d'abonnement MANGOREMA Club."
+        },
+        "favoritePhotoIds": {
+          "type": "array",
+          "description": "Identifiants des photos coup de cœur (max 20)."
+        },
+        "topThreePhotoIds": {
+          "type": "array",
+          "description": "Identifiants des 3 photos mises en valeur en haut du profil (max 3)."
+        },
+        "ecoPoints": {
+          "type": "number",
+          "description": "Points écologiques cumulés via les défis Zéro Déchet."
+        },
+        "zeroWasteExpeditionsCount": {
+          "type": "number",
+          "description": "Nombre d'expéditions réalisées sans laisser de déchets."
+        },
+        "unlockedBadgeIds": {
+          "type": "array",
+          "description": "Identifiants des badges virtuels écologiques débloqués (max 30)."
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Horodatage serveur de création."
+        },
+        "updatedAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Horodatage serveur de dernière mise à jour."
+        }
+      },
+      "required": ["uid", "name", "email", "totalKm", "totalAscent", "stepsCount", "subscription", "createdAt", "updatedAt"]
+    },
+    "Booking": {
+      "title": "Booking",
+      "description": "Billet électronique, location matériel ou réservation guide ANPN appartenant à un utilisateur.",
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "pattern": "^[a-zA-Z0-9_\\-]+$",
+          "maxLength": 128
+        },
+        "userId": {
+          "type": "string",
+          "pattern": "^[a-zA-Z0-9_\\-]+$",
+          "maxLength": 128
+        },
+        "refNumber": {
+          "type": "string",
+          "minLength": 3,
+          "maxLength": 64
+        },
+        "eventId": {
+          "type": "string",
+          "maxLength": 128
+        },
+        "eventTitle": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 160
+        },
+        "eventDate": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 64
+        },
+        "location": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 160
+        },
+        "shuttleIncluded": {
+          "type": "boolean"
+        },
+        "shuttleDetail": {
+          "type": "string",
+          "maxLength": 200
+        },
+        "tentIncluded": {
+          "type": "boolean"
+        },
+        "guideIncluded": {
+          "type": "boolean"
+        },
+        "totalAmount": {
+          "type": "number"
+        },
+        "paymentMethod": {
+          "type": "string",
+          "enum": ["AIRTEL", "MOOV"]
+        },
+        "payerPhone": {
+          "type": "string",
+          "maxLength": 40
+        },
+        "timestamp": {
+          "type": "string",
+          "maxLength": 64
+        },
+        "status": {
+          "type": "string",
+          "enum": ["CONFIRMED", "USED"]
+        },
+        "qrCodeSeed": {
+          "type": "string",
+          "maxLength": 200
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time"
+        }
+      },
+      "required": ["id", "userId", "refNumber", "eventTitle", "eventDate", "location", "shuttleIncluded", "tentIncluded", "guideIncluded", "totalAmount", "paymentMethod", "payerPhone", "timestamp", "status", "qrCodeSeed", "createdAt"]
+    },
+    "UserIncident": {
+      "title": "UserIncident",
+      "description": "Signalement de danger ou vigilance sentier soumis par un randonneur authentifié.",
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "pattern": "^[a-zA-Z0-9_\\-]+$",
+          "maxLength": 128
+        },
+        "userId": {
+          "type": "string",
+          "pattern": "^[a-zA-Z0-9_\\-]+$",
+          "maxLength": 128
+        },
+        "type": {
+          "type": "string",
+          "enum": ["flood", "wildlife", "trail_blocked", "ranger_station", "medical"]
+        },
+        "title": {
+          "type": "string",
+          "minLength": 2,
+          "maxLength": 120
+        },
+        "description": {
+          "type": "string",
+          "minLength": 2,
+          "maxLength": 500
+        },
+        "lat": {
+          "type": "number"
+        },
+        "lng": {
+          "type": "number"
+        },
+        "severity": {
+          "type": "string",
+          "enum": ["low", "medium", "high"]
+        },
+        "reportedAt": {
+          "type": "string",
+          "maxLength": 64
+        },
+        "verifiedByANPN": {
+          "type": "boolean"
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time"
+        }
+      },
+      "required": ["id", "userId", "type", "title", "description", "lat", "lng", "severity", "reportedAt", "verifiedByANPN", "createdAt"]
+    },
+    "ExpeditionReview": {
+      "title": "ExpeditionReview",
+      "description": "Avis vérifié et note (1-5 étoiles) publié par un randonneur sur une expédition MANGOREMA.",
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "pattern": "^[a-zA-Z0-9_\\-]+$",
+          "maxLength": 128
+        },
+        "eventId": {
+          "type": "string",
+          "pattern": "^[a-zA-Z0-9_\\-]+$",
+          "maxLength": 128
+        },
+        "userId": {
+          "type": "string",
+          "pattern": "^[a-zA-Z0-9_\\-]+$",
+          "maxLength": 128
+        },
+        "authorName": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 80
+        },
+        "authorAvatar": {
+          "type": "string",
+          "maxLength": 500
+        },
+        "rating": {
+          "type": "number"
+        },
+        "comment": {
+          "type": "string",
+          "minLength": 3,
+          "maxLength": 400
+        },
+        "photoUrl": {
+          "type": "string",
+          "maxLength": 500
+        },
+        "visibility": {
+          "type": "string",
+          "enum": ["PUBLIC"]
+        },
+        "createdAtLabel": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 64
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time"
+        }
+      },
+      "required": ["id", "eventId", "userId", "authorName", "rating", "comment", "visibility", "createdAtLabel", "createdAt"]
+    },
+    "EcoChallengeCompletion": {
+      "title": "EcoChallengeCompletion",
+      "description": "Validation d'un défi écologique Zéro Déchet pour une expédition réalisée sans laisser de déchets, attribuant un badge virtuel.",
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "pattern": "^[a-zA-Z0-9_\\-]+$",
+          "maxLength": 128
+        },
+        "userId": {
+          "type": "string",
+          "pattern": "^[a-zA-Z0-9_\\-]+$",
+          "maxLength": 128
+        },
+        "eventId": {
+          "type": "string",
+          "pattern": "^[a-zA-Z0-9_\\-]+$",
+          "maxLength": 128
+        },
+        "eventTitle": {
+          "type": "string",
+          "minLength": 2,
+          "maxLength": 160
+        },
+        "parkName": {
+          "type": "string",
+          "minLength": 2,
+          "maxLength": 120
+        },
+        "badgeId": {
+          "type": "string",
+          "pattern": "^[a-zA-Z0-9_\\-]+$",
+          "maxLength": 64
+        },
+        "badgeName": {
+          "type": "string",
+          "minLength": 2,
+          "maxLength": 100
+        },
+        "badgeIcon": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 16
+        },
+        "wasteBagReturned": {
+          "type": "boolean"
+        },
+        "leaveNoTracePledge": {
+          "type": "boolean"
+        },
+        "wasteNote": {
+          "type": "string",
+          "maxLength": 300
+        },
+        "ecoPoints": {
+          "type": "number"
+        },
+        "completedAtLabel": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 64
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time"
+        }
+      },
+      "required": ["id", "userId", "eventId", "eventTitle", "parkName", "badgeId", "badgeName", "badgeIcon", "wasteBagReturned", "leaveNoTracePledge", "ecoPoints", "completedAtLabel", "createdAt"]
+    }
+  },
+  "firestore": {
+    "/users/{userId}": {
+      "schema": { "$ref": "#/entities/UserProfile" },
+      "description": "Document de profil privé et statistiques d'un utilisateur identifié."
+    },
+    "/users/{userId}/bookings/{bookingId}": {
+      "schema": { "$ref": "#/entities/Booking" },
+      "description": "Sous-collection des billets, locations et réservations de l'utilisateur."
+    },
+    "/users/{userId}/incidents/{incidentId}": {
+      "schema": { "$ref": "#/entities/UserIncident" },
+      "description": "Sous-collection des signalements de sentier enregistrés par l'utilisateur."
+    },
+    "/users/{userId}/eco_challenges/{challengeId}": {
+      "schema": { "$ref": "#/entities/EcoChallengeCompletion" },
+      "description": "Sous-collection des défis écologiques Zéro Déchet validés et badges virtuels gagnés par l'utilisateur."
+    },
+    "/expedition_reviews/{reviewId}": {
+      "schema": { "$ref": "#/entities/ExpeditionReview" },
+      "description": "Avis et notes (1-5 étoiles) publiés par les utilisateurs pour chaque expédition."
+    }
+  }
+}

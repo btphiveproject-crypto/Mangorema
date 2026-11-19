@@ -1,0 +1,62 @@
+<!doctype html>
+<html lang="fr" class="dark">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
+    <title>MANGOREMA — Super-App Outdoor Gabon</title>
+    <meta name="description" content="Super-App écotourisme et plein air au Gabon : expéditions, cartographie sentiers et risques, navettes Libreville et paiement Airtel / Moov Money." />
+    <meta property="og:title" content="MANGOREMA — Super-App Outdoor Gabon" />
+    <meta property="og:description" content="Super-App écotourisme et plein air au Gabon : expéditions, cartographie sentiers et risques, navettes Libreville et paiement Airtel / Moov Money." />
+    <meta property="og:type" content="website" />
+    <meta property="og:image" content="/logo.jpg" />
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:image" content="/logo.jpg" />
+    
+    <!-- PWA & Mobile Web App Meta -->
+    <meta name="theme-color" content="#080B09" />
+    <meta name="mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+    <meta name="apple-mobile-web-app-title" content="MANGOREMA" />
+    <link rel="manifest" href="/manifest.json" />
+    <link rel="icon" type="image/jpeg" href="/logo.jpg" />
+    <link rel="apple-touch-icon" href="/logo.jpg" />
+
+    <!-- Google Fonts: DM Serif Display & Space Grotesk / Plus Jakarta Sans -->
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Space+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet" />
+
+    <!-- Leaflet Map CSS -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin="" />
+    <script>
+      (function () {
+        try {
+          var mode = localStorage.getItem('mangorema_theme_mode') || 'auto';
+          var schedRaw = localStorage.getItem('mangorema_theme_schedule');
+          var dayStart = 6;
+          var nightStart = 19;
+          if (schedRaw) {
+            var parsed = JSON.parse(schedRaw);
+            if (typeof parsed.dayStartHour === 'number') dayStart = parsed.dayStartHour;
+            if (typeof parsed.nightStartHour === 'number') nightStart = parsed.nightStartHour;
+          }
+          var hour = new Date().getHours();
+          var isNight = nightStart > dayStart
+            ? (hour >= nightStart || hour < dayStart)
+            : (hour >= nightStart && hour < dayStart);
+          var isDark = mode === 'dark' ? true : mode === 'light' ? false : isNight;
+          document.documentElement.classList.toggle('dark', isDark);
+          document.documentElement.style.colorScheme = isDark ? 'dark' : 'light';
+          var meta = document.querySelector('meta[name="theme-color"]');
+          if (meta) meta.setAttribute('content', isDark ? '#080B09' : '#F4F5F2');
+        } catch (e) {}
+      })();
+    </script>
+  </head>
+  <body class="bg-stone-100 dark:bg-[#080B09] text-slate-900 dark:text-slate-100 antialiased selection:bg-amber-500 selection:text-slate-950 min-h-screen transition-colors duration-200">
+    <div id="root"></div>
+    <script type="module" src="/src/main.tsx"></script>
+  </body>
+</html>
+

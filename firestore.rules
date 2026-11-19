@@ -1,0 +1,294 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // =========================================================================
+    // 1. GLOBAL SAFETY NET (DEFAULT DENY)
+    // =========================================================================
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+    // =========================================================================
+    // 2. REUSABLE HARDENED PRIMITIVES
+    // =========================================================================
+    function incoming() {
+      return request.resource.data;
+    }
+
+    function existing() {
+      return resource.data;
+    }
+
+    function isSignedIn() {
+      return request.auth != null && request.auth.token.email_verified == true;
+    }
+
+    function isValidId(id) {
+      return id is string && id.size() >= 1 && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\\-]+$');
+    }
+
+    function isOwner(userId) {
+      return isSignedIn() && request.auth.uid == userId;
+    }
+
+    function userExists(userId) {
+      return exists(/databases/$(database)/documents/users/$(userId));
+    }
+
+    // =========================================================================
+    // 3. ENTITY VALIDATION BLUEPRINTS
+    // =========================================================================
+    function isValidUserProfile(data, userId) {
+      return data.keys().hasAll([
+          'uid', 'name', 'email', 'totalKm', 'totalAscent', 'stepsCount', 'subscription', 'createdAt', 'updatedAt'
+        ])
+        && data.keys().hasOnly([
+          'uid', 'name', 'role', 'phone', 'email', 'avatar',
+          'totalKm', 'totalAscent', 'stepsCount', 'subscription',
+          'favoritePhotoIds', 'topThreePhotoIds',
+          'ecoPoints', 'zeroWasteExpeditionsCount', 'unlockedBadgeIds',
+          'createdAt', 'updatedAt'
+        ])
+        && data.uid is string && data.uid == userId && isValidId(data.uid)
+        && data.name is string && data.name.size() >= 1 && data.name.size() <= 100
+        && data.email is string && data.email.size() >= 3 && data.email.size() <= 160
+        && (!('role' in data) || (data.role is string && data.role.size() <= 80))
+        && (!('phone' in data) || (data.phone is string && data.phone.size() <= 40))
+        && (!('avatar' in data) || (data.avatar is string && data.avatar.size() <= 500))
+        && data.totalKm is number && data.totalKm >= 0 && data.totalKm <= 1000000
+        && data.totalAscent is number && data.totalAscent >= 0 && data.totalAscent <= 10000000
+        && data.stepsCount is number && data.stepsCount >= 0 && data.stepsCount <= 1000000000
+        && data.subscription in ['Starter (500 F)', 'Club Medium (1 000 F)', 'Pro Expé (2 000 F)']
+        && (!('favoritePhotoIds' in data) || (
+          data.favoritePhotoIds is list && data.favoritePhotoIds.size() <= 20 &&
+          (data.favoritePhotoIds.size() == 0 || (data.favoritePhotoIds[0] is string && data.favoritePhotoIds[0].size() <= 128))
+        ))
+        && (!('topThreePhotoIds' in data) || (
+          data.topThreePhotoIds is list && data.topThreePhotoIds.size() <= 3 &&
+          (data.topThreePhotoIds.size() == 0 || (data.topThreePhotoIds[0] is string && data.topThreePhotoIds[0].size() <= 128))
+        ))
+        && (!('ecoPoints' in data) || (data.ecoPoints is number && data.ecoPoints >= 0 && data.ecoPoints <= 1000000))
+        && (!('zeroWasteExpeditionsCount' in data) || (data.zeroWasteExpeditionsCount is int && data.zeroWasteExpeditionsCount >= 0 && data.zeroWasteExpeditionsCount <= 10000))
+        && (!('unlockedBadgeIds' in data) || (
+          data.unlockedBadgeIds is list && data.unlockedBadgeIds.size() <= 30 &&
+          (data.unlockedBadgeIds.size() == 0 || (data.unlockedBadgeIds[0] is string && data.unlockedBadgeIds[0].size() <= 64))
+        ))
+        && data.createdAt is timestamp
+        && data.updatedAt is timestamp;
+    }
+
+    function isValidBooking(data, userId, bookingId) {
+      return data.keys().hasAll([
+          'id', 'userId', 'refNumber', 'eventTitle', 'eventDate', 'location',
+          'shuttleIncluded', 'tentIncluded', 'guideIncluded', 'totalAmount',
+          'paymentMethod', 'payerPhone', 'timestamp', 'status', 'qrCodeSeed', 'createdAt'
+        ])
+        && data.keys().hasOnly([
+          'id', 'userId', 'refNumber', 'eventId', 'eventTitle', 'eventDate', 'location',
+          'shuttleIncluded', 'shuttleDetail', 'tentIncluded', 'guideIncluded', 'totalAmount',
+          'paymentMethod', 'payerPhone', 'timestamp', 'status', 'qrCodeSeed', 'createdAt'
+        ])
+        && data.id is string && data.id == bookingId && isValidId(data.id)
+        && data.userId is string && data.userId == userId && isValidId(data.userId)
+        && data.refNumber is string && data.refNumber.size() >= 3 && data.refNumber.size() <= 64
+        && (!('eventId' in data) || (data.eventId is string && data.eventId.size() <= 128))
+        && data.eventTitle is string && data.eventTitle.size() >= 1 && data.eventTitle.size() <= 160
+        && data.eventDate is string && data.eventDate.size() >= 1 && data.eventDate.size() <= 64
+        && data.location is string && data.location.size() >= 1 && data.location.size() <= 160
+        && data.shuttleIncluded is bool
+        && (!('shuttleDetail' in data) || (data.shuttleDetail is string && data.shuttleDetail.size() <= 200))
+        && data.tentIncluded is bool
+        && data.guideIncluded is bool
+        && data.totalAmount is number && data.totalAmount >= 0 && data.totalAmount <= 50000000
+        && data.paymentMethod in ['AIRTEL', 'MOOV']
+        && data.payerPhone is string && data.payerPhone.size() <= 40
+        && data.timestamp is string && data.timestamp.size() <= 64
+        && data.status in ['CONFIRMED', 'USED']
+        && data.qrCodeSeed is string && data.qrCodeSeed.size() <= 200
+        && data.createdAt is timestamp;
+    }
+
+    function isValidIncident(data, userId, incidentId) {
+      return data.keys().hasAll([
+          'id', 'userId', 'type', 'title', 'description', 'lat', 'lng',
+          'severity', 'reportedAt', 'verifiedByANPN', 'createdAt'
+        ])
+        && data.keys().hasOnly([
+          'id', 'userId', 'type', 'title', 'description', 'lat', 'lng',
+          'severity', 'reportedAt', 'verifiedByANPN', 'createdAt'
+        ])
+        && data.id is string && data.id == incidentId && isValidId(data.id)
+        && data.userId is string && data.userId == userId && isValidId(data.userId)
+        && data.type in ['flood', 'wildlife', 'trail_blocked', 'ranger_station', 'medical']
+        && data.title is string && data.title.size() >= 2 && data.title.size() <= 120
+        && data.description is string && data.description.size() >= 2 && data.description.size() <= 500
+        && data.lat is number && data.lat >= -90 && data.lat <= 90
+        && data.lng is number && data.lng >= -180 && data.lng <= 180
+        && data.severity in ['low', 'medium', 'high']
+        && data.reportedAt is string && data.reportedAt.size() <= 64
+        && data.verifiedByANPN is bool && data.verifiedByANPN == false
+        && data.createdAt is timestamp;
+    }
+
+    function isValidEcoChallenge(data, userId, challengeId) {
+      return data.keys().hasAll([
+          'id', 'userId', 'eventId', 'eventTitle', 'parkName',
+          'badgeId', 'badgeName', 'badgeIcon',
+          'wasteBagReturned', 'leaveNoTracePledge', 'ecoPoints',
+          'completedAtLabel', 'createdAt'
+        ])
+        && data.keys().hasOnly([
+          'id', 'userId', 'eventId', 'eventTitle', 'parkName',
+          'badgeId', 'badgeName', 'badgeIcon',
+          'wasteBagReturned', 'leaveNoTracePledge', 'wasteNote', 'ecoPoints',
+          'completedAtLabel', 'createdAt'
+        ])
+        && data.id is string && data.id == challengeId && isValidId(data.id)
+        && data.userId is string && data.userId == userId && isValidId(data.userId)
+        && data.eventId is string && isValidId(data.eventId)
+        && data.eventTitle is string && data.eventTitle.size() >= 2 && data.eventTitle.size() <= 160
+        && data.parkName is string && data.parkName.size() >= 2 && data.parkName.size() <= 120
+        && data.badgeId is string && data.badgeId.size() >= 1 && data.badgeId.size() <= 64 && isValidId(data.badgeId)
+        && data.badgeName is string && data.badgeName.size() >= 2 && data.badgeName.size() <= 100
+        && data.badgeIcon is string && data.badgeIcon.size() >= 1 && data.badgeIcon.size() <= 16
+        && data.wasteBagReturned is bool && data.wasteBagReturned == true
+        && data.leaveNoTracePledge is bool && data.leaveNoTracePledge == true
+        && (!('wasteNote' in data) || (data.wasteNote is string && data.wasteNote.size() <= 300))
+        && data.ecoPoints is int && data.ecoPoints >= 50 && data.ecoPoints <= 500
+        && data.completedAtLabel is string && data.completedAtLabel.size() >= 1 && data.completedAtLabel.size() <= 64
+        && data.createdAt is timestamp;
+    }
+
+    function isValidExpeditionReview(data, reviewId) {
+      return data.keys().hasAll([
+          'id', 'eventId', 'userId', 'authorName', 'rating',
+          'comment', 'visibility', 'createdAtLabel', 'createdAt'
+        ])
+        && data.keys().hasOnly([
+          'id', 'eventId', 'userId', 'authorName', 'authorAvatar',
+          'rating', 'comment', 'photoUrl', 'visibility', 'createdAtLabel', 'createdAt'
+        ])
+        && data.id is string && data.id == reviewId && isValidId(data.id)
+        && data.eventId is string && isValidId(data.eventId)
+        && data.userId is string && data.userId == request.auth.uid && isValidId(data.userId)
+        && data.authorName is string && data.authorName.size() >= 1 && data.authorName.size() <= 80
+        && (!('authorAvatar' in data) || (data.authorAvatar is string && data.authorAvatar.size() <= 500))
+        && data.rating is int && data.rating >= 1 && data.rating <= 5
+        && data.comment is string && data.comment.size() >= 3 && data.comment.size() <= 400
+        && (!('photoUrl' in data) || (data.photoUrl is string && data.photoUrl.size() <= 500))
+        && data.visibility is string && data.visibility == 'PUBLIC'
+        && data.createdAtLabel is string && data.createdAtLabel.size() >= 1 && data.createdAtLabel.size() <= 64
+        && data.createdAt is timestamp;
+    }
+
+    // =========================================================================
+    // 4. COLLECTION MATCH BLOCKS
+    // =========================================================================
+    match /users/{userId} {
+      allow get: if isValidId(userId) && isOwner(userId);
+      allow list: if false;
+
+      allow create: if isValidId(userId)
+        && isOwner(userId)
+        && isValidUserProfile(incoming(), userId)
+        && incoming().createdAt == request.time
+        && incoming().updatedAt == request.time;
+
+      allow update: if isValidId(userId)
+        && isOwner(userId)
+        && isValidUserProfile(incoming(), userId)
+        && incoming().uid == existing().uid
+        && incoming().email == existing().email
+        && incoming().createdAt == existing().createdAt
+        && incoming().updatedAt == request.time
+        && (
+          // Action: Update activity stats, preferences & eco-challenge progress
+          incoming().diff(existing()).affectedKeys().hasOnly([
+            'name', 'role', 'phone', 'avatar', 'totalKm', 'totalAscent',
+            'stepsCount', 'subscription', 'favoritePhotoIds', 'topThreePhotoIds',
+            'ecoPoints', 'zeroWasteExpeditionsCount', 'unlockedBadgeIds', 'updatedAt'
+          ])
+        );
+
+      allow delete: if isValidId(userId) && isOwner(userId);
+
+      // Subcollection: Bookings
+      match /bookings/{bookingId} {
+        allow get: if isValidId(userId) && isValidId(bookingId) && isOwner(userId) && userExists(userId);
+        allow list: if isValidId(userId) && isOwner(userId) && existing().userId == request.auth.uid;
+
+        allow create: if isValidId(userId) && isValidId(bookingId)
+          && isOwner(userId)
+          && isValidBooking(incoming(), userId, bookingId)
+          && incoming().status == 'CONFIRMED'
+          && incoming().createdAt == request.time
+          && userExists(userId);
+
+        allow update: if isValidId(userId) && isValidId(bookingId)
+          && isOwner(userId)
+          && isValidBooking(incoming(), userId, bookingId)
+          && userExists(userId)
+          && existing().status != 'USED'
+          && incoming().id == existing().id
+          && incoming().userId == existing().userId
+          && incoming().refNumber == existing().refNumber
+          && incoming().totalAmount == existing().totalAmount
+          && incoming().paymentMethod == existing().paymentMethod
+          && incoming().createdAt == existing().createdAt
+          && (
+            // Action: Mark ticket as USED
+            incoming().diff(existing()).affectedKeys().hasOnly(['status']) && incoming().status == 'USED'
+          );
+
+        allow delete: if false;
+      }
+
+      // Subcollection: User-submitted trail safety incidents
+      match /incidents/{incidentId} {
+        allow get: if isValidId(userId) && isValidId(incidentId) && isOwner(userId) && userExists(userId);
+        allow list: if isValidId(userId) && isOwner(userId) && existing().userId == request.auth.uid;
+
+        allow create: if isValidId(userId) && isValidId(incidentId)
+          && isOwner(userId)
+          && isValidIncident(incoming(), userId, incidentId)
+          && incoming().createdAt == request.time
+          && userExists(userId);
+
+        allow update: if false;
+        allow delete: if isValidId(userId) && isValidId(incidentId) && isOwner(userId);
+      }
+
+      // Subcollection: Ecological Zero-Waste Challenges & Virtual Badges
+      match /eco_challenges/{challengeId} {
+        allow get: if isValidId(userId) && isValidId(challengeId) && isOwner(userId) && userExists(userId);
+        allow list: if isValidId(userId) && isOwner(userId) && existing().userId == request.auth.uid;
+
+        allow create: if isValidId(userId) && isValidId(challengeId)
+          && isOwner(userId)
+          && isValidEcoChallenge(incoming(), userId, challengeId)
+          && incoming().createdAt == request.time
+          && userExists(userId);
+
+        allow update: if false;
+        allow delete: if isValidId(userId) && isValidId(challengeId) && isOwner(userId);
+      }
+    }
+
+    // Collection: Community Expedition Reviews (zero PII, authenticated public read)
+    match /expedition_reviews/{reviewId} {
+      allow get: if isValidId(reviewId) && isSignedIn() && (existing().visibility == 'PUBLIC' || existing().userId == request.auth.uid);
+      allow list: if isSignedIn() && (existing().visibility == 'PUBLIC' || existing().userId == request.auth.uid);
+
+      allow create: if isValidId(reviewId)
+        && isSignedIn()
+        && isValidExpeditionReview(incoming(), reviewId)
+        && incoming().createdAt == request.time
+        && userExists(request.auth.uid);
+
+      allow update: if false;
+      allow delete: if isValidId(reviewId) && isSignedIn() && existing().userId == request.auth.uid;
+    }
+  }
+}
