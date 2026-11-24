@@ -3,7 +3,11 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import { Booking } from '../types';
+import { Booking, ExpeditionEvent } from '../types';
+
+const LOCAL_AGENDA_AUTO_SYNC_KEY = 'mangorema_local_agenda_auto_sync';
+const LOCAL_AGENDA_SYNCED_IDS_KEY = 'mangorema_local_agenda_synced_ids';
+const LOCAL_AGENDA_LAST_SYNC_KEY = 'mangorema_local_agenda_last_sync';
 
 /**
  * Parses French date formats like "Samedi 14 Nov 2026", "14 Nov 2026", "2026-11-14"
@@ -65,6 +69,20 @@ function formatToICSDate(date: Date): string {
   return date.toISOString().replace(/[-:]/g, '').split('.')[0] + 'Z';
 }
 
+function escapeIcsText(raw: string): string {
+  return String(raw || '')
+    .replace(/[\u0000-\u001F\u007F]/g, ' ')
+    .replace(/\\/g, '\\\\')
+    .replace(/;/g, '\\;')
+    .replace(/,/g, '\\,')
+    .replace(/\s+/g, ' ')
+    .trim();
+}
+
+function sanitizeIcsUidToken(raw: string): string {
+  return String(raw || 'event').replace(/[^a-zA-Z0-9_-]/g, '-').slice(0, 80);
+}
+
 /**
  * Generates an RFC 5545 compliant .ics string for a single booking
  */
@@ -75,21 +93,24 @@ export function generateBookingICS(booking: Booking): string {
   const dtStart = formatToICSDate(start);
   const dtEnd = formatToICSDate(end);
 
-  const cleanTitle = booking.eventTitle.replace(/[\r\n,]/g, ' ');
-  const cleanLocation = `${booking.location}, Gabon`.replace(/[\r\n,]/g, ' ');
+  const cleanTitle = escapeIcsText(booking.eventTitle);
+  const cleanLocation = escapeIcsText(`${booking.location}, Gabon`);
+  const cleanUid = `${sanitizeIcsUidToken(booking.refNumber)}-${start.getTime()}@mangorema.ga`;
 
   const descriptionLines = [
-    `EXPÉDITION GABON - MANGOREMA`,
-    `Référence Billet : ${booking.refNumber}`,
-    `Date : ${booking.eventDate}`,
-    `Lieu : ${booking.location}`,
-    booking.shuttleIncluded ? `Navette A/R incluse : ${booking.shuttleDetail || 'Oui'}` : 'Navette : Non incluse',
+    'EXPÉDITION GABON - MANGOREMA',
+    `Référence Billet : ${escapeIcsText(booking.refNumber)}`,
+    `Date : ${escapeIcsText(booking.eventDate)}`,
+    `Lieu : ${escapeIcsText(booking.location)}`,
+    booking.shuttleIncluded ? `Navette A/R incluse : ${escapeIcsText(booking.shuttleDetail || 'Oui')}` : 'Navette : Non incluse',
     booking.tentIncluded ? 'Hébergement : Tente bivouac fournie' : 'Tente : Équipement personnel',
     booking.guideIncluded ? 'Accompagnement : Écoguide agréé ANPN inclus' : '',
-    `Montant réglé : ${booking.totalAmount.toLocaleString('fr-FR')} FCFA via ${booking.paymentMethod}`,
-    `Contact Sécurité ANPN : 1488 (Libreville)`,
-    `Pass numérique disponible dans l'application MANGOREMA.`,
-  ].filter(Boolean).join('\\n');
+    `Montant réglé : ${booking.totalAmount.toLocaleString('fr-FR')} FCFA via ${escapeIcsText(booking.paymentMethod)}`,
+    'Contact Sécurité ANPN : 1488 (Libreville)',
+    "Pass numérique disponible dans l'application MANGOREMA.",
+  ]
+    .filter(Boolean)
+    .join('\\n');
 
   return [
     'BEGIN:VCALENDAR',
@@ -100,7 +121,7 @@ export function generateBookingICS(booking: Booking): string {
     'X-WR-CALNAME:MANGOREMA Expéditions',
     'X-WR-TIMEZONE:Africa/Libreville',
     'BEGIN:VEVENT',
-    `UID:${booking.refNumber}-${start.getTime()}@mangorema.ga`,
+    `UID:${cleanUid}`,
     `DTSTAMP:${dtStamp}`,
     `DTSTART:${dtStart}`,
     `DTEND:${dtEnd}`,
@@ -135,23 +156,26 @@ export function generateAllBookingsICS(bookings: Booking[]): string {
     const { start, end } = parseEventDate(b.eventDate);
     const dtStart = formatToICSDate(start);
     const dtEnd = formatToICSDate(end);
-    const cleanTitle = b.eventTitle.replace(/[\r\n,]/g, ' ');
-    const cleanLocation = `${b.location}, Gabon`.replace(/[\r\n,]/g, ' ');
+    const cleanTitle = escapeIcsText(b.eventTitle);
+    const cleanLocation = escapeIcsText(`${b.location}, Gabon`);
+    const cleanUid = `${sanitizeIcsUidToken(b.refNumber)}-${start.getTime()}@mangorema.ga`;
 
     const descriptionLines = [
-      `EXPÉDITION GABON - MANGOREMA`,
-      `Référence Billet : ${b.refNumber}`,
-      `Date : ${b.eventDate}`,
-      `Lieu : ${b.location}`,
-      b.shuttleIncluded ? `Navette A/R : ${b.shuttleDetail || 'Incluse'}` : '',
+      'EXPÉDITION GABON - MANGOREMA',
+      `Référence Billet : ${escapeIcsText(b.refNumber)}`,
+      `Date : ${escapeIcsText(b.eventDate)}`,
+      `Lieu : ${escapeIcsText(b.location)}`,
+      b.shuttleIncluded ? `Navette A/R : ${escapeIcsText(b.shuttleDetail || 'Incluse')}` : '',
       b.tentIncluded ? 'Tente bivouac incluse' : '',
-      `Montant réglé : ${b.totalAmount.toLocaleString('fr-FR')} FCFA (${b.paymentMethod})`,
-      `Pass numérique disponible sur l'application MANGOREMA.`,
-    ].filter(Boolean).join('\\n');
+      `Montant réglé : ${b.totalAmount.toLocaleString('fr-FR')} FCFA (${escapeIcsText(b.paymentMethod)})`,
+      "Pass numérique disponible sur l'application MANGOREMA.",
+    ]
+      .filter(Boolean)
+      .join('\\n');
 
     return [
       'BEGIN:VEVENT',
-      `UID:${b.refNumber}-${start.getTime()}@mangorema.ga`,
+      `UID:${cleanUid}`,
       `DTSTAMP:${dtStamp}`,
       `DTSTART:${dtStart}`,
       `DTEND:${dtEnd}`,
@@ -186,11 +210,13 @@ export function generateAllBookingsICS(bookings: Booking[]): string {
  * Triggers a browser download of the .ics file
  */
 export function downloadICS(filename: string, icsContent: string): void {
+  const safeBase = filename.replace(/[^a-zA-Z0-9_.-]/g, '_');
+  const safeName = safeBase.endsWith('.ics') ? safeBase : `${safeBase}.ics`;
   const blob = new Blob([icsContent], { type: 'text/calendar;charset=utf-8;' });
   const url = URL.createObjectURL(blob);
   const link = document.createElement('a');
   link.href = url;
-  link.setAttribute('download', filename.endsWith('.ics') ? filename : `${filename}.ics`);
+  link.setAttribute('download', safeName);
   document.body.appendChild(link);
   link.click();
   document.body.removeChild(link);
@@ -211,4 +237,191 @@ export function getGoogleCalendarUrl(booking: Booking): string {
   const location = encodeURIComponent(`${booking.location}, Gabon`);
 
   return `https://calendar.google.com/calendar/render?action=TEMPLATE&text=${text}&dates=${dtStart}/${dtEnd}&details=${details}&location=${location}`;
+}
+
+/**
+ * Generates an RFC 5545 compliant .ics string for a single upcoming ExpeditionEvent
+ */
+export function generateEventICS(event: ExpeditionEvent): string {
+  const { start, end } = parseEventDate(event.date);
+  const dtStamp = formatToICSDate(new Date());
+  const dtStart = formatToICSDate(start);
+  const dtEnd = formatToICSDate(end);
+
+  const cleanTitle = escapeIcsText(event.title);
+  const cleanLocation = escapeIcsText(`${event.parkName}, ${event.location}, Gabon`);
+  const cleanUid = `evt-${sanitizeIcsUidToken(event.id)}-${start.getTime()}@mangorema.ga`;
+
+  const descriptionLines = [
+    'EXPÉDITION MANGOREMA GABON',
+    `Parc / Zone : ${escapeIcsText(event.parkName)}`,
+    `Date : ${escapeIcsText(event.date)}`,
+    `Durée : ${escapeIcsText(event.duration)} · Difficulté : ${escapeIcsText(event.difficulty)} (${escapeIcsText(event.distance)})`,
+    `Organisateur : ${escapeIcsText(event.organizer)}`,
+    `Tarif : ${event.basePrice === 0 ? 'Gratuit (Éco-volontariat)' : `${event.basePrice.toLocaleString('fr-FR')} FCFA`}`,
+    escapeIcsText(event.description),
+  ]
+    .filter(Boolean)
+    .join('\\n');
+
+  return [
+    'BEGIN:VCALENDAR',
+    'VERSION:2.0',
+    'PRODID:-//MANGOREMA Gabon//Expeditions Explorer Calendar 1.0//FR',
+    'CALSCALE:GREGORIAN',
+    'METHOD:PUBLISH',
+    'X-WR-CALNAME:MANGOREMA Expéditions À Venir',
+    'X-WR-TIMEZONE:Africa/Libreville',
+    'BEGIN:VEVENT',
+    `UID:${cleanUid}`,
+    `DTSTAMP:${dtStamp}`,
+    `DTSTART:${dtStart}`,
+    `DTEND:${dtEnd}`,
+    `SUMMARY:🌿 [MANGOREMA] ${cleanTitle}`,
+    `DESCRIPTION:${descriptionLines}`,
+    `LOCATION:${cleanLocation}`,
+    'STATUS:CONFIRMED',
+    'TRANSP:OPAQUE',
+    'BEGIN:VALARM',
+    'ACTION:DISPLAY',
+    `DESCRIPTION:Départ expédition ${cleanTitle} demain ! Préparez votre sac et checklist.`,
+    'TRIGGER:-P1D',
+    'END:VALARM',
+    'BEGIN:VALARM',
+    'ACTION:DISPLAY',
+    `DESCRIPTION:Rappel H-2 : ${cleanTitle} (${escapeIcsText(event.location)}).`,
+    'TRIGGER:-PT2H',
+    'END:VALARM',
+    'END:VEVENT',
+    'END:VCALENDAR',
+  ].join('\r\n');
+}
+
+/**
+ * Generates an RFC 5545 compliant .ics file combining multiple upcoming expeditions
+ */
+export function generateAllEventsICS(events: ExpeditionEvent[]): string {
+  const dtStamp = formatToICSDate(new Date());
+
+  const vEvents = events
+    .map((evt) => {
+      const { start, end } = parseEventDate(evt.date);
+      const dtStart = formatToICSDate(start);
+      const dtEnd = formatToICSDate(end);
+      const cleanTitle = escapeIcsText(evt.title);
+      const cleanLocation = escapeIcsText(`${evt.parkName}, ${evt.location}, Gabon`);
+      const cleanUid = `evt-${sanitizeIcsUidToken(evt.id)}-${start.getTime()}@mangorema.ga`;
+
+      const descriptionLines = [
+        'EXPÉDITION MANGOREMA GABON',
+        `Parc : ${escapeIcsText(evt.parkName)}`,
+        `Date : ${escapeIcsText(evt.date)}`,
+        `Durée : ${escapeIcsText(evt.duration)} · Difficulté : ${escapeIcsText(evt.difficulty)}`,
+        `Tarif : ${evt.basePrice === 0 ? 'Gratuit' : `${evt.basePrice.toLocaleString('fr-FR')} FCFA`}`,
+      ].join('\\n');
+
+      return [
+        'BEGIN:VEVENT',
+        `UID:${cleanUid}`,
+        `DTSTAMP:${dtStamp}`,
+        `DTSTART:${dtStart}`,
+        `DTEND:${dtEnd}`,
+        `SUMMARY:🌿 [MANGOREMA] ${cleanTitle}`,
+        `DESCRIPTION:${descriptionLines}`,
+        `LOCATION:${cleanLocation}`,
+        'STATUS:CONFIRMED',
+        'TRANSP:OPAQUE',
+        'BEGIN:VALARM',
+        'ACTION:DISPLAY',
+        `DESCRIPTION:Rappel expédition MANGOREMA demain : ${cleanTitle}`,
+        'TRIGGER:-P1D',
+        'END:VALARM',
+        'END:VEVENT',
+      ].join('\r\n');
+    })
+    .join('\r\n');
+
+  return [
+    'BEGIN:VCALENDAR',
+    'VERSION:2.0',
+    'PRODID:-//MANGOREMA Gabon//Expeditions Explorer Calendar 1.0//FR',
+    'CALSCALE:GREGORIAN',
+    'METHOD:PUBLISH',
+    'X-WR-CALNAME:MANGOREMA Expéditions À Venir',
+    'X-WR-TIMEZONE:Africa/Libreville',
+    vEvents,
+    'END:VCALENDAR',
+  ].join('\r\n');
+}
+
+/**
+ * Builds a direct Google Calendar Web URL for 1-click addition of an ExpeditionEvent
+ */
+export function getEventGoogleCalendarUrl(event: ExpeditionEvent): string {
+  const { start, end } = parseEventDate(event.date);
+  const dtStart = formatToICSDate(start);
+  const dtEnd = formatToICSDate(end);
+  const text = encodeURIComponent(`🌿 [MANGOREMA] ${event.title}`);
+  const details = encodeURIComponent(
+    `${event.description}\n\nParc : ${event.parkName}\nDurée : ${event.duration} · Difficulté : ${event.difficulty} (${event.distance})\nTarif : ${event.basePrice === 0 ? 'Gratuit' : `${event.basePrice.toLocaleString('fr-FR')} FCFA`}\nApp MANGOREMA Gabon`
+  );
+  const location = encodeURIComponent(`${event.parkName}, ${event.location}, Gabon`);
+
+  return `https://calendar.google.com/calendar/render?action=TEMPLATE&text=${text}&dates=${dtStart}/${dtEnd}&details=${details}&location=${location}`;
+}
+
+export function getLocalAgendaAutoSync(): boolean {
+  if (typeof window === 'undefined') return false;
+  try {
+    return localStorage.getItem(LOCAL_AGENDA_AUTO_SYNC_KEY) === 'true';
+  } catch {
+    return false;
+  }
+}
+
+export function setLocalAgendaAutoSync(enabled: boolean): void {
+  if (typeof window === 'undefined') return;
+  try {
+    localStorage.setItem(LOCAL_AGENDA_AUTO_SYNC_KEY, enabled ? 'true' : 'false');
+  } catch {
+    // ignore storage errors
+  }
+}
+
+export function getSyncedLocalEventIds(): string[] {
+  if (typeof window === 'undefined') return [];
+  try {
+    const raw = localStorage.getItem(LOCAL_AGENDA_SYNCED_IDS_KEY);
+    if (!raw) return [];
+    const parsed = JSON.parse(raw);
+    return Array.isArray(parsed) ? parsed.filter((x): x is string => typeof x === 'string') : [];
+  } catch {
+    return [];
+  }
+}
+
+export function markEventsSyncedLocalAgenda(eventIds: string[]): string[] {
+  const merged = Array.from(new Set([...getSyncedLocalEventIds(), ...eventIds]));
+  if (typeof window !== 'undefined') {
+    try {
+      localStorage.setItem(LOCAL_AGENDA_SYNCED_IDS_KEY, JSON.stringify(merged));
+      const nowLabel = new Date().toLocaleTimeString('fr-FR', {
+        hour: '2-digit',
+        minute: '2-digit',
+      });
+      localStorage.setItem(LOCAL_AGENDA_LAST_SYNC_KEY, nowLabel);
+    } catch {
+      // ignore storage errors
+    }
+  }
+  return merged;
+}
+
+export function getLastLocalAgendaSyncAt(): string | null {
+  if (typeof window === 'undefined') return null;
+  try {
+    return localStorage.getItem(LOCAL_AGENDA_LAST_SYNC_KEY);
+  } catch {
+    return null;
+  }
 }

@@ -16,6 +16,7 @@ import {
   Compass,
   Quote,
 } from 'lucide-react';
+import { sanitizeSafeHttpUrl } from '../utils/urlSecurity';
 
 interface MapPlace {
   title: string;
@@ -257,31 +258,49 @@ export const MapsGroundingPanel: React.FC<{ selectedPark?: string }> = ({
                 Lieux & Liens Google Maps vérifiés ({result.places.length})
               </span>
               <div className="space-y-2">
-                {result.places.map((place, idx) => (
-                  <a
-                    key={idx}
-                    href={place.uri}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="block p-2.5 rounded-xl bg-white dark:bg-slate-900/90 border border-amber-500/35 dark:border-amber-500/25 hover:border-amber-500 dark:hover:border-amber-400 transition group"
-                  >
-                    <div className="flex items-center justify-between gap-2">
-                      <span className="text-xs font-bold text-slate-900 dark:text-white group-hover:text-amber-700 dark:group-hover:text-amber-300 truncate">
-                        {place.title}
-                      </span>
-                      <span className="text-[10px] text-amber-700 dark:text-amber-400 font-semibold flex items-center gap-1 shrink-0">
-                        <span>Ouvrir Maps</span>
-                        <ExternalLink className="w-3 h-3" />
-                      </span>
+                {result.places.map((place, idx) => {
+                  const safeUri = sanitizeSafeHttpUrl(place.uri);
+                  const cardContent = (
+                    <>
+                      <div className="flex items-center justify-between gap-2">
+                        <span className="text-xs font-bold text-slate-900 dark:text-white group-hover:text-amber-700 dark:group-hover:text-amber-300 truncate">
+                          {place.title}
+                        </span>
+                        {safeUri && (
+                          <span className="text-[10px] text-amber-700 dark:text-amber-400 font-semibold flex items-center gap-1 shrink-0">
+                            <span>Ouvrir Maps</span>
+                            <ExternalLink className="w-3 h-3" />
+                          </span>
+                        )}
+                      </div>
+                      {place.reviewSnippets.length > 0 && (
+                        <p className="text-[10.5px] text-slate-600 dark:text-slate-400 mt-1 flex items-start gap-1.5 line-clamp-2">
+                          <Quote className="w-3 h-3 text-amber-600 dark:text-amber-500/70 shrink-0 mt-0.5" />
+                          <span>{place.reviewSnippets[0]}</span>
+                        </p>
+                      )}
+                    </>
+                  );
+
+                  return safeUri ? (
+                    <a
+                      key={idx}
+                      href={safeUri}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="block p-2.5 rounded-xl bg-white dark:bg-slate-900/90 border border-amber-500/35 dark:border-amber-500/25 hover:border-amber-500 dark:hover:border-amber-400 transition group"
+                    >
+                      {cardContent}
+                    </a>
+                  ) : (
+                    <div
+                      key={idx}
+                      className="block p-2.5 rounded-xl bg-white dark:bg-slate-900/90 border border-amber-500/35 dark:border-amber-500/25"
+                    >
+                      {cardContent}
                     </div>
-                    {place.reviewSnippets.length > 0 && (
-                      <p className="text-[10.5px] text-slate-600 dark:text-slate-400 mt-1 flex items-start gap-1.5 line-clamp-2">
-                        <Quote className="w-3 h-3 text-amber-600 dark:text-amber-500/70 shrink-0 mt-0.5" />
-                        <span>{place.reviewSnippets[0]}</span>
-                      </p>
-                    )}
-                  </a>
-                ))}
+                  );
+                })}
               </div>
             </div>
           )}
@@ -420,18 +439,22 @@ export const SearchGroundingPanel: React.FC = () => {
                 Sources Web vérifiées ({result.sources.length})
               </span>
               <div className="flex flex-wrap gap-1.5">
-                {result.sources.map((src, idx) => (
-                  <a
-                    key={idx}
-                    href={src.uri}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-white dark:bg-slate-900 border border-sky-500/30 dark:border-sky-500/25 hover:border-sky-500 dark:hover:border-sky-400 text-[10.5px] text-sky-800 dark:text-sky-200 hover:text-sky-950 dark:hover:text-white transition max-w-full"
-                  >
-                    <span className="truncate max-w-[200px]">{src.title}</span>
-                    <ExternalLink className="w-3 h-3 shrink-0 text-sky-600 dark:text-sky-400" />
-                  </a>
-                ))}
+                {result.sources.map((src, idx) => {
+                  const safeUri = sanitizeSafeHttpUrl(src.uri);
+                  if (!safeUri) return null;
+                  return (
+                    <a
+                      key={idx}
+                      href={safeUri}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-white dark:bg-slate-900 border border-sky-500/30 dark:border-sky-500/25 hover:border-sky-500 dark:hover:border-sky-400 text-[10.5px] text-sky-800 dark:text-sky-200 hover:text-sky-950 dark:hover:text-white transition max-w-full"
+                    >
+                      <span className="truncate max-w-[200px]">{src.title}</span>
+                      <ExternalLink className="w-3 h-3 shrink-0 text-sky-600 dark:text-sky-400" />
+                    </a>
+                  );
+                })}
               </div>
             </div>
           )}

@@ -35,8 +35,27 @@
         },
         "avatar": {
           "type": "string",
-          "maxLength": 500,
+          "maxLength": 1000,
           "description": "URL de la photo de profil."
+        },
+        "bio": {
+          "type": "string",
+          "maxLength": 400,
+          "description": "Courte biographie d'explorateur ou de guide."
+        },
+        "homeCity": {
+          "type": "string",
+          "maxLength": 80,
+          "description": "Ville ou province de base au Gabon."
+        },
+        "favoritePark": {
+          "type": "string",
+          "maxLength": 100,
+          "description": "Parc national ou réserve de prédilection."
+        },
+        "publicDiscoverable": {
+          "type": "boolean",
+          "description": "Autorise l'affichage du profil public (sans PII) pour recevoir des messages privés."
         },
         "totalKm": {
           "type": "number",
@@ -52,7 +71,7 @@
         },
         "subscription": {
           "type": "string",
-          "enum": ["Starter (500 F)", "Club Medium (1 000 F)", "Pro Expé (2 000 F)"],
+          "enum": ["Gratuit (0 F)", "Starter (500 F)", "Club Medium (1 000 F)", "Pro Expé (2 000 F)"],
           "description": "Formule d'abonnement MANGOREMA Club."
         },
         "favoritePhotoIds": {
@@ -145,7 +164,7 @@
         },
         "paymentMethod": {
           "type": "string",
-          "enum": ["AIRTEL", "MOOV"]
+          "enum": ["AIRTEL", "MOOV", "GHETTOPAY"]
         },
         "payerPhone": {
           "type": "string",
@@ -335,6 +354,14 @@
           "type": "string",
           "maxLength": 300
         },
+        "proofPhotoUrl": {
+          "type": "string",
+          "maxLength": 1000
+        },
+        "proofStoragePath": {
+          "type": "string",
+          "maxLength": 300
+        },
         "ecoPoints": {
           "type": "number"
         },
@@ -349,6 +376,439 @@
         }
       },
       "required": ["id", "userId", "eventId", "eventTitle", "parkName", "badgeId", "badgeName", "badgeIcon", "wasteBagReturned", "leaveNoTracePledge", "ecoPoints", "completedAtLabel", "createdAt"]
+    },
+    "EcoLogEntry": {
+      "title": "EcoLogEntry",
+      "description": "Observation naturaliste (faune, flore, espèces marines ou oiseaux) consignée dans le Carnet Éco-Log de l'utilisateur.",
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "pattern": "^[a-zA-Z0-9_\\-]+$",
+          "maxLength": 128
+        },
+        "userId": {
+          "type": "string",
+          "pattern": "^[a-zA-Z0-9_\\-]+$",
+          "maxLength": 128
+        },
+        "speciesName": {
+          "type": "string",
+          "minLength": 2,
+          "maxLength": 120
+        },
+        "category": {
+          "type": "string",
+          "enum": ["FAUNE", "FLORE", "MARINE", "OISEAUX"]
+        },
+        "parkName": {
+          "type": "string",
+          "minLength": 2,
+          "maxLength": 120
+        },
+        "observedAt": {
+          "type": "string",
+          "minLength": 4,
+          "maxLength": 32
+        },
+        "notes": {
+          "type": "string",
+          "minLength": 3,
+          "maxLength": 800
+        },
+        "weatherOrContext": {
+          "type": "string",
+          "maxLength": 160
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "updatedAt": {
+          "type": "string",
+          "format": "date-time"
+        }
+      },
+      "required": ["id", "userId", "speciesName", "category", "parkName", "observedAt", "notes", "createdAt", "updatedAt"]
+    },
+    "TrustedContact": {
+      "title": "TrustedContact",
+      "description": "Contact Google importé et synchronisé comme proche de confiance pour le partage d'itinéraires et alertes sécurité.",
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "pattern": "^[a-zA-Z0-9_\\-]+$",
+          "maxLength": 128
+        },
+        "userId": {
+          "type": "string",
+          "pattern": "^[a-zA-Z0-9_\\-]+$",
+          "maxLength": 128
+        },
+        "resourceName": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 160
+        },
+        "displayName": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 100
+        },
+        "phoneNumber": {
+          "type": "string",
+          "maxLength": 40
+        },
+        "email": {
+          "type": "string",
+          "maxLength": 160
+        },
+        "photoUrl": {
+          "type": "string",
+          "maxLength": 500
+        },
+        "relationTag": {
+          "type": "string",
+          "maxLength": 60
+        },
+        "shareSafetyAlerts": {
+          "type": "boolean"
+        },
+        "shareExpeditionPlans": {
+          "type": "boolean"
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "updatedAt": {
+          "type": "string",
+          "format": "date-time"
+        }
+      },
+      "required": ["id", "userId", "resourceName", "displayName", "shareSafetyAlerts", "shareExpeditionPlans", "createdAt", "updatedAt"]
+    },
+    "CommunityActivity": {
+      "title": "CommunityActivity",
+      "description": "Activité de terrain publiée par un explorateur (randonnée, faune, bivouac ou éco-action) sans PII.",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "pattern": "^[a-zA-Z0-9_\\-]+$", "maxLength": 128 },
+        "userId": { "type": "string", "pattern": "^[a-zA-Z0-9_\\-]+$", "maxLength": 128 },
+        "authorName": { "type": "string", "minLength": 1, "maxLength": 80 },
+        "authorAvatar": { "type": "string", "maxLength": 500 },
+        "parkName": { "type": "string", "minLength": 2, "maxLength": 120 },
+        "activityType": { "type": "string", "enum": ["RANDONNEE", "FAUNE", "BIVOUAC", "ECO_ACTION"] },
+        "title": { "type": "string", "minLength": 3, "maxLength": 120 },
+        "description": { "type": "string", "minLength": 3, "maxLength": 600 },
+        "photoUrl": { "type": "string", "maxLength": 1000 },
+        "distanceKm": { "type": "number", "minimum": 0, "maximum": 500 },
+        "elevationM": { "type": "integer", "minimum": 0, "maximum": 10000 },
+        "visibility": { "type": "string", "enum": ["PUBLIC"] },
+        "createdAtLabel": { "type": "string", "minLength": 1, "maxLength": 64 },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["id", "userId", "authorName", "parkName", "activityType", "title", "description", "visibility", "createdAtLabel", "createdAt"]
+    },
+    "CommunityActivityComment": {
+      "title": "CommunityActivityComment",
+      "description": "Commentaire publié sur l'activité d'un autre utilisateur (sans PII).",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "pattern": "^[a-zA-Z0-9_\\-]+$", "maxLength": 128 },
+        "activityId": { "type": "string", "pattern": "^[a-zA-Z0-9_\\-]+$", "maxLength": 128 },
+        "userId": { "type": "string", "pattern": "^[a-zA-Z0-9_\\-]+$", "maxLength": 128 },
+        "authorName": { "type": "string", "minLength": 1, "maxLength": 80 },
+        "authorAvatar": { "type": "string", "maxLength": 500 },
+        "text": { "type": "string", "minLength": 2, "maxLength": 400 },
+        "visibility": { "type": "string", "enum": ["PUBLIC"] },
+        "createdAtLabel": { "type": "string", "minLength": 1, "maxLength": 64 },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["id", "activityId", "userId", "authorName", "text", "visibility", "createdAtLabel", "createdAt"]
+    },
+    "CommunityActivityLike": {
+      "title": "CommunityActivityLike",
+      "description": "Encouragement ('Bravo') unique par utilisateur sur une activité.",
+      "type": "object",
+      "properties": {
+        "activityId": { "type": "string", "pattern": "^[a-zA-Z0-9_\\-]+$", "maxLength": 128 },
+        "userId": { "type": "string", "pattern": "^[a-zA-Z0-9_\\-]+$", "maxLength": 128 },
+        "visibility": { "type": "string", "enum": ["PUBLIC"] },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["activityId", "userId", "visibility", "createdAt"]
+    },
+    "CommunityChatMessage": {
+      "title": "CommunityChatMessage",
+      "description": "Message envoyé dans un salon du chat communautaire en temps réel (sans PII).",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "pattern": "^[a-zA-Z0-9_\\-]+$", "maxLength": 128 },
+        "roomId": { "type": "string", "enum": ["general", "mondah", "ivindo", "pongara", "cristal"] },
+        "userId": { "type": "string", "pattern": "^[a-zA-Z0-9_\\-]+$", "maxLength": 128 },
+        "authorName": { "type": "string", "minLength": 1, "maxLength": 80 },
+        "authorAvatar": { "type": "string", "maxLength": 500 },
+        "text": { "type": "string", "minLength": 1, "maxLength": 500 },
+        "visibility": { "type": "string", "enum": ["PUBLIC"] },
+        "createdAtLabel": { "type": "string", "minLength": 1, "maxLength": 64 },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["id", "roomId", "userId", "authorName", "text", "visibility", "createdAtLabel", "createdAt"]
+    },
+    "MarketplaceOrder": {
+      "title": "MarketplaceOrder",
+      "description": "Commande unifiée (activités, boutique, locations, navettes) vérifiée côté serveur avec commission, caution et état de paiement.",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "pattern": "^[a-zA-Z0-9_\\-]+$", "maxLength": 128 },
+        "userId": { "type": "string", "pattern": "^[a-zA-Z0-9_\\-]+$", "maxLength": 128 },
+        "refNumber": { "type": "string", "minLength": 3, "maxLength": 64 },
+        "idempotencyKey": { "type": "string", "minLength": 8, "maxLength": 128 },
+        "itemsSummary": { "type": "string", "minLength": 2, "maxLength": 500 },
+        "itemsJson": { "type": "string", "minLength": 2, "maxLength": 12000 },
+        "itemsSubtotal": { "type": "number", "minimum": 0, "maximum": 50000000 },
+        "deliveryFee": { "type": "number", "minimum": 0, "maximum": 500000 },
+        "depositTotal": { "type": "number", "minimum": 0, "maximum": 50000000 },
+        "platformCommission": { "type": "number", "minimum": 0, "maximum": 10000000 },
+        "vendorNetAmount": { "type": "number", "minimum": 0, "maximum": 50000000 },
+        "grandTotalCharged": { "type": "number", "minimum": 0, "maximum": 50000000 },
+        "paymentMethod": { "type": "string", "enum": ["AIRTEL", "MOOV", "GHETTOPAY", "CARD"] },
+        "paymentStatus": { "type": "string", "enum": ["CONFIRMED", "PENDING", "FAILED", "REFUNDED"] },
+        "fulfillmentStatus": {
+          "type": "string",
+          "enum": ["PENDING_VENDOR", "CONFIRMED", "PREPARING", "READY_PICKUP", "IN_DELIVERY", "COMPLETED", "REFUNDED", "CANCELLED"]
+        },
+        "payerLabel": { "type": "string", "minLength": 2, "maxLength": 64 },
+        "deliveryAddress": { "type": "string", "maxLength": 200 },
+        "timestamp": { "type": "string", "maxLength": 64 },
+        "receiptHash": { "type": "string", "minLength": 6, "maxLength": 128 },
+        "refundReason": { "type": "string", "maxLength": 200 },
+        "refundedAtLabel": { "type": "string", "maxLength": 64 },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": [
+        "id", "userId", "refNumber", "idempotencyKey", "itemsSummary", "itemsJson",
+        "itemsSubtotal", "deliveryFee", "depositTotal", "platformCommission",
+        "vendorNetAmount", "grandTotalCharged", "paymentMethod", "paymentStatus",
+        "fulfillmentStatus", "payerLabel", "timestamp", "receiptHash", "createdAt", "updatedAt"
+      ]
+    },
+    "VendorListing": {
+      "title": "VendorListing",
+      "description": "Offre publiée par un prestataire, un professionnel terrain ou un magasin (activité, produit boutique ou matériel en location) sans PII.",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "pattern": "^[a-zA-Z0-9_\\-]+$", "maxLength": 128 },
+        "ownerUserId": { "type": "string", "pattern": "^[a-zA-Z0-9_\\-]+$", "maxLength": 128 },
+        "ownerName": { "type": "string", "minLength": 1, "maxLength": 80 },
+        "ownerRole": { "type": "string", "enum": ["pro", "store"] },
+        "listingKind": { "type": "string", "enum": ["activity", "product", "rental"] },
+        "title": { "type": "string", "minLength": 3, "maxLength": 120 },
+        "category": { "type": "string", "minLength": 2, "maxLength": 60 },
+        "productCategory": {
+          "type": "string",
+          "enum": ["randonnee", "camping", "chaussures_vetements", "optique_photo", "eclairage_gadgets", "lifestyle_mangorema"]
+        },
+        "rentalCategory": {
+          "type": "string",
+          "enum": ["tente", "sac_a_dos", "vtt", "balise_gps", "bivouac"]
+        },
+        "storeId": { "type": "string", "pattern": "^[a-zA-Z0-9_\\-]+$", "maxLength": 128 },
+        "storeName": { "type": "string", "maxLength": 100 },
+        "specialtyTag": { "type": "string", "maxLength": 60 },
+        "deliveryAvailable": { "type": "boolean" },
+        "location": { "type": "string", "minLength": 2, "maxLength": 120 },
+        "locationEnabled": { "type": "boolean" },
+        "lat": { "type": "number", "minimum": -90, "maximum": 90 },
+        "lng": { "type": "number", "minimum": -180, "maximum": 180 },
+        "price": { "type": "number", "minimum": 0, "maximum": 10000000 },
+        "depositAmount": { "type": "number", "minimum": 0, "maximum": 5000000 },
+        "stockOrCapacity": { "type": "integer", "minimum": 0, "maximum": 1000 },
+        "description": { "type": "string", "minLength": 5, "maxLength": 600 },
+        "status": { "type": "string", "enum": ["ACTIVE", "PAUSED"] },
+        "visibility": { "type": "string", "enum": ["PUBLIC"] },
+        "createdAtLabel": { "type": "string", "minLength": 1, "maxLength": 64 },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": [
+        "id", "ownerUserId", "ownerName", "listingKind", "title", "category",
+        "location", "price", "stockOrCapacity", "description", "status",
+        "visibility", "createdAtLabel", "createdAt", "updatedAt"
+      ]
+    },
+    "ProfessionalProfile": {
+      "title": "ProfessionalProfile",
+      "description": "Fiche publique d'un professionnel outdoor (Guide ANPN, Ornithologue, Botaniste, Pisteur, Photographe, Opérateur ou Autre) sans PII.",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "pattern": "^[a-zA-Z0-9_\\-]+$", "maxLength": 128 },
+        "ownerUserId": { "type": "string", "pattern": "^[a-zA-Z0-9_\\-]+$", "maxLength": 128 },
+        "displayName": { "type": "string", "minLength": 2, "maxLength": 80 },
+        "specialty": {
+          "type": "string",
+          "enum": ["guide_anpn", "ornithologue", "botaniste", "pisteur", "photographe", "ecoguide", "operateur", "autre"]
+        },
+        "customSpecialty": { "type": "string", "maxLength": 60 },
+        "title": { "type": "string", "minLength": 2, "maxLength": 100 },
+        "anpnLicense": { "type": "string", "maxLength": 60 },
+        "certifications": { "type": "array", "description": "Certifications et agréments (max 8)." },
+        "parks": { "type": "array", "description": "Parcs nationaux et zones couverts (max 10)." },
+        "languages": { "type": "array", "description": "Langues parlées (max 8)." },
+        "expertiseTags": { "type": "array", "description": "Mots-clés d'expertise terrain (max 10)." },
+        "dayRate": { "type": "number", "minimum": 0, "maximum": 5000000 },
+        "availability": { "type": "string", "enum": ["DISPONIBLE", "SUR_DEMANDE_24H", "COMPLET"] },
+        "availabilityNote": { "type": "string", "maxLength": 160 },
+        "bio": { "type": "string", "minLength": 10, "maxLength": 600 },
+        "photoUrl": { "type": "string", "maxLength": 500 },
+        "status": { "type": "string", "enum": ["ACTIVE", "PAUSED"] },
+        "visibility": { "type": "string", "enum": ["PUBLIC"] },
+        "createdAtLabel": { "type": "string", "minLength": 1, "maxLength": 64 },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": [
+        "id", "ownerUserId", "displayName", "specialty", "title", "certifications",
+        "parks", "languages", "expertiseTags", "dayRate", "availability", "bio",
+        "status", "visibility", "createdAtLabel", "createdAt", "updatedAt"
+      ]
+    },
+    "StoreProfile": {
+      "title": "StoreProfile",
+      "description": "Vitrine publique d'un magasin ou loueur d'équipements outdoor au Gabon (sans PII personnelle).",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "pattern": "^[a-zA-Z0-9_\\-]+$", "maxLength": 128 },
+        "ownerUserId": { "type": "string", "pattern": "^[a-zA-Z0-9_\\-]+$", "maxLength": 128 },
+        "storeName": { "type": "string", "minLength": 2, "maxLength": 100 },
+        "storeType": {
+          "type": "string",
+          "enum": ["outdoor_shop", "rental_agency", "optique_photo", "marine_nautique", "multi_sport"]
+        },
+        "cityZone": { "type": "string", "minLength": 2, "maxLength": 80 },
+        "pickupAddress": { "type": "string", "minLength": 3, "maxLength": 160 },
+        "openingHours": { "type": "string", "minLength": 3, "maxLength": 100 },
+        "deliveryAvailable": { "type": "boolean" },
+        "deliveryFee": { "type": "number", "minimum": 0, "maximum": 100000 },
+        "deliveryZones": { "type": "string", "maxLength": 160 },
+        "description": { "type": "string", "minLength": 5, "maxLength": 600 },
+        "logoUrl": { "type": "string", "maxLength": 500 },
+        "status": { "type": "string", "enum": ["ACTIVE", "PAUSED"] },
+        "visibility": { "type": "string", "enum": ["PUBLIC"] },
+        "createdAtLabel": { "type": "string", "minLength": 1, "maxLength": 64 },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": [
+        "id", "ownerUserId", "storeName", "storeType", "cityZone", "pickupAddress",
+        "openingHours", "deliveryAvailable", "deliveryFee", "description", "status",
+        "visibility", "createdAtLabel", "createdAt", "updatedAt"
+      ]
+    },
+    "BusinessSettlementSettings": {
+      "title": "BusinessSettlementSettings",
+      "description": "Paramètres privés de reversement Mobile Money et immatriculation commerciale (strictement isolés par utilisateur).",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "enum": ["professional", "store"] },
+        "userId": { "type": "string", "pattern": "^[a-zA-Z0-9_\\-]+$", "maxLength": 128 },
+        "payoutOperator": { "type": "string", "enum": ["AIRTEL", "MOOV", "GHETTOPAY", "BANK"] },
+        "payoutAccountPhone": { "type": "string", "maxLength": 40 },
+        "businessRegNumber": { "type": "string", "maxLength": 64 },
+        "emergencyContact": { "type": "string", "maxLength": 80 },
+        "autoAcceptBookings": { "type": "boolean" },
+        "updatedAtLabel": { "type": "string", "maxLength": 64 },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["id", "userId", "payoutOperator", "payoutAccountPhone", "autoAcceptBookings", "createdAt", "updatedAt"]
+    },
+    "PublicExplorerProfile": {
+      "title": "PublicExplorerProfile",
+      "description": "Annuaire public sans PII (ni e-mail ni téléphone) permettant de découvrir les explorateurs, voir leurs contributions et démarrer un chat privé.",
+      "type": "object",
+      "properties": {
+        "uid": { "type": "string", "pattern": "^[a-zA-Z0-9_\\-]+$", "maxLength": 128 },
+        "displayName": { "type": "string", "minLength": 1, "maxLength": 100 },
+        "role": { "type": "string", "maxLength": 80 },
+        "bio": { "type": "string", "maxLength": 400 },
+        "homeCity": { "type": "string", "maxLength": 80 },
+        "favoritePark": { "type": "string", "maxLength": 100 },
+        "avatarUrl": { "type": "string", "maxLength": 1000 },
+        "ecoPoints": { "type": "number", "minimum": 0, "maximum": 1000000 },
+        "contributionsCount": { "type": "integer", "minimum": 0, "maximum": 100000 },
+        "isDiscoverable": { "type": "boolean" },
+        "visibility": { "type": "string", "enum": ["PUBLIC"] },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["uid", "displayName", "ecoPoints", "contributionsCount", "isDiscoverable", "visibility", "createdAt", "updatedAt"]
+    },
+    "SiteContribution": {
+      "title": "SiteContribution",
+      "description": "Contribution terrain et photo partagée sur un parc national ou site naturel gabonais (sans PII).",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "pattern": "^[a-zA-Z0-9_\\-]+$", "maxLength": 128 },
+        "userId": { "type": "string", "pattern": "^[a-zA-Z0-9_\\-]+$", "maxLength": 128 },
+        "authorName": { "type": "string", "minLength": 1, "maxLength": 80 },
+        "authorAvatar": { "type": "string", "maxLength": 1000 },
+        "parkId": { "type": "string", "pattern": "^[a-zA-Z0-9_\\-]+$", "maxLength": 128 },
+        "parkName": { "type": "string", "minLength": 2, "maxLength": 120 },
+        "zoneLabel": { "type": "string", "maxLength": 120 },
+        "contributionType": { "type": "string", "enum": ["PHOTO", "OBSERVATION", "TRAIL_TIP", "CAMP_INFO"] },
+        "title": { "type": "string", "minLength": 2, "maxLength": 120 },
+        "description": { "type": "string", "minLength": 2, "maxLength": 800 },
+        "photoUrl": { "type": "string", "maxLength": 1000 },
+        "storagePath": { "type": "string", "maxLength": 300 },
+        "visibility": { "type": "string", "enum": ["PUBLIC"] },
+        "createdAtLabel": { "type": "string", "minLength": 1, "maxLength": 64 },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["id", "userId", "authorName", "parkId", "parkName", "contributionType", "title", "description", "visibility", "createdAtLabel", "createdAt"]
+    },
+    "DirectChat": {
+      "title": "DirectChat",
+      "description": "Conversation privée 1-à-1 entre deux membres identifiés MANGOREMA (sans PII).",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "pattern": "^[a-zA-Z0-9_\\-]+$", "maxLength": 128 },
+        "participantUids": { "type": "array", "minItems": 2, "maxItems": 2 },
+        "participantAId": { "type": "string", "pattern": "^[a-zA-Z0-9_\\-]+$", "maxLength": 128 },
+        "participantBId": { "type": "string", "pattern": "^[a-zA-Z0-9_\\-]+$", "maxLength": 128 },
+        "participantAName": { "type": "string", "minLength": 1, "maxLength": 100 },
+        "participantBName": { "type": "string", "minLength": 1, "maxLength": 100 },
+        "participantAAvatar": { "type": "string", "maxLength": 1000 },
+        "participantBAvatar": { "type": "string", "maxLength": 1000 },
+        "lastMessageText": { "type": "string", "minLength": 1, "maxLength": 500 },
+        "lastMessageSenderId": { "type": "string", "pattern": "^[a-zA-Z0-9_\\-]+$", "maxLength": 128 },
+        "lastMessageAtLabel": { "type": "string", "minLength": 1, "maxLength": 64 },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["id", "participantUids", "participantAId", "participantBId", "participantAName", "participantBName", "lastMessageText", "lastMessageSenderId", "lastMessageAtLabel", "createdAt", "updatedAt"]
+    },
+    "DirectChatMessage": {
+      "title": "DirectChatMessage",
+      "description": "Message privé échangé dans une conversation 1-à-1 entre deux participants.",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "pattern": "^[a-zA-Z0-9_\\-]+$", "maxLength": 128 },
+        "chatId": { "type": "string", "pattern": "^[a-zA-Z0-9_\\-]+$", "maxLength": 128 },
+        "senderId": { "type": "string", "pattern": "^[a-zA-Z0-9_\\-]+$", "maxLength": 128 },
+        "senderName": { "type": "string", "minLength": 1, "maxLength": 80 },
+        "senderAvatar": { "type": "string", "maxLength": 1000 },
+        "participantUids": { "type": "array", "minItems": 2, "maxItems": 2 },
+        "text": { "type": "string", "maxLength": 1000 },
+        "photoUrl": { "type": "string", "maxLength": 1000 },
+        "storagePath": { "type": "string", "maxLength": 300 },
+        "createdAtLabel": { "type": "string", "minLength": 1, "maxLength": 64 },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["id", "chatId", "senderId", "senderName", "participantUids", "text", "createdAtLabel", "createdAt"]
     }
   },
   "firestore": {
@@ -360,6 +820,10 @@
       "schema": { "$ref": "#/entities/Booking" },
       "description": "Sous-collection des billets, locations et réservations de l'utilisateur."
     },
+    "/users/{userId}/orders/{orderId}": {
+      "schema": { "$ref": "#/entities/MarketplaceOrder" },
+      "description": "Sous-collection des commandes unifiées (panier multi-services, achats boutique, locations) avec reçus et statuts."
+    },
     "/users/{userId}/incidents/{incidentId}": {
       "schema": { "$ref": "#/entities/UserIncident" },
       "description": "Sous-collection des signalements de sentier enregistrés par l'utilisateur."
@@ -368,9 +832,65 @@
       "schema": { "$ref": "#/entities/EcoChallengeCompletion" },
       "description": "Sous-collection des défis écologiques Zéro Déchet validés et badges virtuels gagnés par l'utilisateur."
     },
+    "/users/{userId}/eco_logs/{logId}": {
+      "schema": { "$ref": "#/entities/EcoLogEntry" },
+      "description": "Sous-collection du Carnet Éco-Log contenant les observations faune/flore de l'utilisateur."
+    },
+    "/users/{userId}/trusted_contacts/{contactId}": {
+      "schema": { "$ref": "#/entities/TrustedContact" },
+      "description": "Sous-collection des proches importés depuis Google Contacts pour le partage de sécurité et d'expéditions."
+    },
+    "/users/{userId}/business_settings/{settingId}": {
+      "schema": { "$ref": "#/entities/BusinessSettlementSettings" },
+      "description": "Sous-collection privée des paramètres commerciaux et comptes Mobile Money des versions Pro et Magasin."
+    },
     "/expedition_reviews/{reviewId}": {
       "schema": { "$ref": "#/entities/ExpeditionReview" },
       "description": "Avis et notes (1-5 étoiles) publiés par les utilisateurs pour chaque expédition."
+    },
+    "/community_activities/{activityId}": {
+      "schema": { "$ref": "#/entities/CommunityActivity" },
+      "description": "Fil communautaire des activités et sorties publiées par les utilisateurs."
+    },
+    "/community_activities/{activityId}/comments/{commentId}": {
+      "schema": { "$ref": "#/entities/CommunityActivityComment" },
+      "description": "Commentaires publiés sur les activités de la communauté."
+    },
+    "/community_activities/{activityId}/likes/{likeUserId}": {
+      "schema": { "$ref": "#/entities/CommunityActivityLike" },
+      "description": "Encouragements (likes) indexés par UID utilisateur sur une activité."
+    },
+    "/community_chat_messages/{messageId}": {
+      "schema": { "$ref": "#/entities/CommunityChatMessage" },
+      "description": "Messages du chat communautaire temps réel par salon."
+    },
+    "/vendor_listings/{listingId}": {
+      "schema": { "$ref": "#/entities/VendorListing" },
+      "description": "Catalogue des offres publiées par les professionnels, prestataires et magasins partenaires."
+    },
+    "/pro_profiles/{profileId}": {
+      "schema": { "$ref": "#/entities/ProfessionalProfile" },
+      "description": "Annuaire public des guides, ornithologues, botanistes, pisteurs et professionnels certifiés."
+    },
+    "/store_profiles/{storeId}": {
+      "schema": { "$ref": "#/entities/StoreProfile" },
+      "description": "Annuaire public des magasins outdoor et agences de location partenaires au Gabon."
+    },
+    "/public_profiles/{userId}": {
+      "schema": { "$ref": "#/entities/PublicExplorerProfile" },
+      "description": "Profils publics des explorateurs MANGOREMA (sans PII) pour annuaire communautaire et chat privé."
+    },
+    "/site_contributions/{contributionId}": {
+      "schema": { "$ref": "#/entities/SiteContribution" },
+      "description": "Contributions terrain et photos des sites naturels et parcs nationaux du Gabon."
+    },
+    "/direct_chats/{chatId}": {
+      "schema": { "$ref": "#/entities/DirectChat" },
+      "description": "Conversations privées 1-à-1 entre deux utilisateurs participants."
+    },
+    "/direct_chats/{chatId}/messages/{messageId}": {
+      "schema": { "$ref": "#/entities/DirectChatMessage" },
+      "description": "Messages privés temps réel d'une conversation 1-à-1."
     }
   }
 }

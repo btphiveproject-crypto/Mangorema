@@ -14,6 +14,7 @@ import {
   MapPin,
   Recycle,
   X,
+  Camera,
 } from 'lucide-react';
 import {
   EcoChallengeCompletion,
@@ -43,6 +44,7 @@ interface GalleryBadgeItem {
   ecoPoints?: number;
   requirementText?: string;
   wasteNote?: string;
+  proofPhotoUrl?: string;
   syncedWithFirebase: boolean;
   challengeDef?: EcoChallengeDefinition;
 }
@@ -134,6 +136,7 @@ export const BadgesGalleryModal: React.FC<BadgesGalleryModalProps> = ({
         ecoPoints: challengeDef?.ecoPoints ?? vb.ecoPointsReward,
         requirementText: vb.requirementText,
         wasteNote: completion?.wasteNote,
+        proofPhotoUrl: completion?.proofPhotoUrl,
         syncedWithFirebase: Boolean(completion) || (isUnlocked && isAuthenticated),
         challengeDef,
       });
@@ -161,6 +164,7 @@ export const BadgesGalleryModal: React.FC<BadgesGalleryModalProps> = ({
         ecoPoints: wc.ecoPoints,
         requirementText: wc.targetAction,
         wasteNote: completion?.wasteNote,
+        proofPhotoUrl: completion?.proofPhotoUrl,
         syncedWithFirebase: Boolean(completion) || (isUnlocked && isAuthenticated),
         challengeDef: wc,
       });
@@ -181,6 +185,7 @@ export const BadgesGalleryModal: React.FC<BadgesGalleryModalProps> = ({
         parkName: comp.parkName,
         ecoPoints: comp.ecoPoints,
         wasteNote: comp.wasteNote,
+        proofPhotoUrl: comp.proofPhotoUrl,
         syncedWithFirebase: true,
       });
     }
@@ -425,6 +430,20 @@ export const BadgesGalleryModal: React.FC<BadgesGalleryModalProps> = ({
                       <p className="text-[11px] text-slate-600 dark:text-slate-300 italic pt-1 border-t border-stone-200/70 dark:border-white/5">
                         Note terrain : « {selectedBadge.wasteNote} »
                       </p>
+                    )}
+
+                    {selectedBadge.proofPhotoUrl && (
+                      <div className="pt-2 border-t border-stone-200/70 dark:border-white/5 space-y-1.5">
+                        <span className="text-[11px] font-semibold text-emerald-700 dark:text-emerald-400 flex items-center gap-1.5">
+                          <Camera className="w-3.5 h-3.5" />
+                          Preuve photo ramassage (Firebase Storage)
+                        </span>
+                        <img
+                          src={selectedBadge.proofPhotoUrl}
+                          alt={`Preuve photo ${selectedBadge.name}`}
+                          className="w-full h-36 object-cover rounded-xl border border-emerald-500/35"
+                        />
+                      </div>
                     )}
 
                     {!selectedBadge.unlocked && selectedBadge.requirementText && (

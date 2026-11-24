@@ -3,16 +3,45 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import React, { useMemo, useState, useEffect } from 'react';
-import { ExpeditionEvent } from '../types';
-import { ChevronLeft, ChevronRight, Calendar, MapPin, Clock, ArrowRight, Sparkles } from 'lucide-react';
+import React, { useMemo, useState, useEffect, useCallback } from 'react';
+import { ExpeditionEvent, EventCategory } from '../types';
+import {
+  ChevronLeft,
+  ChevronRight,
+  Calendar,
+  CalendarPlus,
+  CalendarCheck,
+  MapPin,
+  Clock,
+  ArrowRight,
+  Sparkles,
+  RefreshCw,
+  ExternalLink,
+  Filter,
+  Check,
+  X,
+} from 'lucide-react';
 import { CategoryIcon } from './CategoryIcon';
+import {
+  generateEventICS,
+  generateAllEventsICS,
+  downloadICS,
+  getEventGoogleCalendarUrl,
+  getLocalAgendaAutoSync,
+  setLocalAgendaAutoSync,
+  getSyncedLocalEventIds,
+  markEventsSyncedLocalAgenda,
+  getLastLocalAgendaSyncAt,
+} from '../utils/calendar';
 
 interface ExpeditionCalendarProps {
   events: ExpeditionEvent[];
   selectedPark: string;
   onSelectEvent: (event: ExpeditionEvent) => void;
 }
+
+type DateScopeFilter = 'upcoming' | 'month' | 'weekends' | 'all';
+type CategoryFilter = 'ALL' | EventCategory;
 
 const FRENCH_MONTHS = [
   'Janvier',
@@ -27,6 +56,21 @@ const FRENCH_MONTHS = [
   'Octobre',
   'Novembre',
   'Décembre',
+];
+
+const SHORT_FRENCH_MONTHS = [
+  'Jan',
+  'Fév',
+  'Mar',
+  'Avr',
+  'Mai',
+  'Juin',
+  'Juil',
+  'Août',
+  'Sept',
+  'Oct',
+  'Nov',
+  'Déc',
 ];
 
 const WEEKDAYS = ['Lun', 'Mar', 'Mer', 'Jeu', 'Ven', 'Sam', 'Dim'];
@@ -114,6 +158,19 @@ export function parseExpeditionDateKey(dateStr: string): string | null {
   return null;
 }
 
+function isWeekendDateKey(dateKey: string): boolean {
+  const [y, m, d] = dateKey.split('-').map(Number);
+  if (!y || !m || !d) return false;
+  const dayOfWeek = new Date(y, m - 1, d).getDay();
+  return dayOfWeek === 0 || dayOfWeek === 6;
+}
+
+function formatShortChipDate(dateKey: string): string {
+  const [, m, d] = dateKey.split('-').map(Number);
+  if (!m || !d) return dateKey;
+  return `${String(d).padStart(2, '0')} ${SHORT_FRENCH_MONTHS[m - 1] || ''}`;
+}
+
 function matchesParkFilter(evt: ExpeditionEvent, selectedPark: string): boolean {
   if (selectedPark === 'all') return true;
   const target = `${evt.parkName} ${evt.location}`.toLowerCase();
@@ -136,26 +193,71 @@ export const ExpeditionCalendar: React.FC<ExpeditionCalendarProps> = ({
   const [viewYear, setViewYear] = useState<number>(2026);
   const [viewMonth, setViewMonth] = useState<number>(10); // Novembre 2026 (0-indexed)
   const [selectedDateKey, setSelectedDateKey] = useState<string | null>(null);
+  const [dateScope, setDateScope] = useState<DateScopeFilter>('upcoming');
+  const [categoryFilter, setCategoryFilter] = useState<CategoryFilter>('ALL');
 
-  const filteredEvents = useMemo(
-    () => events.filter((e) => matchesParkFilter(e, selectedPark)),
-    [events, selectedPark]
-  );
+  // Local Agenda Sync State
+  const [autoSyncEnabled, setAutoSyncEnabled] = useState<boolean>(() => getLocalAgendaAutoSync());
+  const [syncedEventIds, setSyncedEventIds] = useState<string[]>(() => getSyncedLocalEventIds());
+  const [lastSyncedAt, setLastSyncedAt] = useState<string | null>(() => getLastLocalAgendaSyncAt());
+  const [syncFeedback, setSyncFeedback] = useState<string | null>(null);
 
-  // Map YYYY-MM-DD -> ExpeditionEvent[]
+  const showSyncToast = useCallback((msg: string) => {
+    setSyncFeedback(msg);
+    setTimeout(() => setSyncFeedback(null), 4500);
+  }, []);
+
+  // Filter by selected park + category
+  const categoryParkEvents = useMemo(() => {
+    return events.filter((e) => {
+      if (!matchesParkFilter(e, selectedPark)) return false;
+      if (categoryFilter !== 'ALL' && e.category !== categoryFilter) return false;
+      return true;
+    });
+  }, [events, selectedPark, categoryFilter]);
+
+  // All upcoming events (>= todayKey) independent of month/grid cell click
+  const allUpcomingEvents = useMemo(() => {
+    return categoryParkEvents
+      .map((evt) => ({ evt, dateKey: parseExpeditionDateKey(evt.date) }))
+      .filter((item): item is { evt: ExpeditionEvent; dateKey: string } =>
+        Boolean(item.dateKey && item.dateKey >= todayKey)
+      )
+      .sort((a, b) => a.dateKey.localeCompare(b.dateKey));
+  }, [categoryParkEvents, todayKey]);
+
+  // Filter events matching both calendar period scope and category/park
+  const scopeFilteredEntries = useMemo(() => {
+    const monthPrefix = `${viewYear}-${String(viewMonth + 1).padStart(2, '0')}-`;
+    return categoryParkEvents
+      .map((evt) => ({ evt, dateKey: parseExpeditionDateKey(evt.date) }))
+      .filter((item): item is { evt: ExpeditionEvent; dateKey: string } => {
+        if (!item.dateKey) return false;
+        if (dateScope === 'upcoming') return item.dateKey >= todayKey;
+        if (dateScope === 'month') return item.dateKey.startsWith(monthPrefix);
+        if (dateScope === 'weekends') {
+          return item.dateKey >= todayKey && isWeekendDateKey(item.dateKey);
+        }
+        return true;
+      })
+      .sort((a, b) => a.dateKey.localeCompare(b.dateKey));
+  }, [categoryParkEvents, dateScope, viewYear, viewMonth, todayKey]);
+
+  // Map YYYY-MM-DD -> ExpeditionEvent[] for calendar grid markers
   const eventsByDate = useMemo(() => {
     const map = new Map<string, ExpeditionEvent[]>();
-    for (const evt of filteredEvents) {
+    for (const evt of categoryParkEvents) {
       const key = parseExpeditionDateKey(evt.date);
       if (!key) continue;
+      if (dateScope === 'weekends' && !isWeekendDateKey(key)) continue;
+      if (dateScope === 'upcoming' && key < todayKey) continue;
       const existing = map.get(key) || [];
       existing.push(evt);
       map.set(key, existing);
     }
     return map;
-  }, [filteredEvents]);
+  }, [categoryParkEvents, dateScope, todayKey]);
 
-  // All available dates in currently displayed month sorted chronologically
   const monthPrefix = `${viewYear}-${String(viewMonth + 1).padStart(2, '0')}-`;
   const monthEventDates = useMemo(() => {
     return Array.from(eventsByDate.keys())
@@ -163,18 +265,80 @@ export const ExpeditionCalendar: React.FC<ExpeditionCalendarProps> = ({
       .sort();
   }, [eventsByDate, monthPrefix]);
 
-  // Keep selectedDateKey synced when switching parks or months
+  // Automatically sync newly appearing upcoming expeditions when auto-sync is active
   useEffect(() => {
-    if (selectedDateKey && eventsByDate.has(selectedDateKey)) {
-      return;
-    }
-    if (monthEventDates.length > 0) {
-      const upcoming = monthEventDates.find((d) => d >= todayKey) || monthEventDates[0];
-      setSelectedDateKey(upcoming);
+    if (!autoSyncEnabled || allUpcomingEvents.length === 0) return;
+
+    const unsynced = allUpcomingEvents
+      .map((item) => item.evt)
+      .filter((evt) => !syncedEventIds.includes(evt.id));
+
+    if (unsynced.length === 0) return;
+
+    const ics = generateAllEventsICS(unsynced);
+    downloadICS('MANGOREMA_Agenda_Expeditions_A_Venir.ics', ics);
+    const updatedIds = markEventsSyncedLocalAgenda(unsynced.map((e) => e.id));
+    setSyncedEventIds(updatedIds);
+    setLastSyncedAt(getLastLocalAgendaSyncAt());
+    showSyncToast(
+      `Synchro automatique effectuée : ${unsynced.length} nouvelle(s) expédition(s) exportée(s) vers votre agenda local (.ics).`
+    );
+  }, [autoSyncEnabled, allUpcomingEvents, syncedEventIds, showSyncToast]);
+
+  const handleToggleAutoSync = () => {
+    const nextEnabled = !autoSyncEnabled;
+    setAutoSyncEnabled(nextEnabled);
+    setLocalAgendaAutoSync(nextEnabled);
+
+    if (nextEnabled) {
+      const upcomingList = allUpcomingEvents.map((i) => i.evt);
+      const targets = upcomingList.length > 0 ? upcomingList : categoryParkEvents;
+      if (targets.length > 0) {
+        downloadICS('MANGOREMA_Agenda_Expeditions_A_Venir.ics', generateAllEventsICS(targets));
+        const updated = markEventsSyncedLocalAgenda(targets.map((e) => e.id));
+        setSyncedEventIds(updated);
+        setLastSyncedAt(getLastLocalAgendaSyncAt());
+        showSyncToast(
+          `Synchronisation automatique activée : ${targets.length} expédition(s) exportée(s) (.ics) vers votre agenda local.`
+        );
+      } else {
+        showSyncToast('Synchronisation automatique agenda local activée.');
+      }
     } else {
-      setSelectedDateKey(null);
+      showSyncToast('Synchronisation automatique mise en pause (export manuel toujours actif).');
     }
-  }, [selectedPark, viewYear, viewMonth, monthEventDates, eventsByDate, selectedDateKey, todayKey]);
+  };
+
+  const handleSyncSingleEventICS = (evt: ExpeditionEvent) => {
+    const safeSlug = evt.title
+      .toLowerCase()
+      .replace(/[^a-z0-9]+/g, '_')
+      .slice(0, 32);
+    downloadICS(`MANGOREMA_${safeSlug}.ics`, generateEventICS(evt));
+    const updated = markEventsSyncedLocalAgenda([evt.id]);
+    setSyncedEventIds(updated);
+    setLastSyncedAt(getLastLocalAgendaSyncAt());
+    showSyncToast(`« ${evt.title} » synchronisée vers votre agenda local (.ics).`);
+  };
+
+  const handleSyncAllVisibleICS = () => {
+    const targets = visibleExpeditions;
+    if (targets.length === 0) return;
+    downloadICS('MANGOREMA_Expeditions_Filtrees.ics', generateAllEventsICS(targets));
+    const updated = markEventsSyncedLocalAgenda(targets.map((e) => e.id));
+    setSyncedEventIds(updated);
+    setLastSyncedAt(getLastLocalAgendaSyncAt());
+    showSyncToast(`${targets.length} expédition(s) exportée(s) vers votre agenda local (.ics).`);
+  };
+
+  const handleSelectDateChip = (dateKey: string) => {
+    const [y, m] = dateKey.split('-').map(Number);
+    if (y && m) {
+      setViewYear(y);
+      setViewMonth(m - 1);
+    }
+    setSelectedDateKey((prev) => (prev === dateKey ? null : dateKey));
+  };
 
   const handlePrevMonth = () => {
     if (viewMonth === 0) {
@@ -203,7 +367,6 @@ export const ExpeditionCalendar: React.FC<ExpeditionCalendarProps> = ({
   const calendarCells = useMemo(() => {
     const firstDayOfMonth = new Date(viewYear, viewMonth, 1);
     const daysInMonth = new Date(viewYear, viewMonth + 1, 0).getDate();
-    // Convert Sunday (0) .. Saturday (6) -> Monday (0) .. Sunday (6)
     const startOffset = (firstDayOfMonth.getDay() + 6) % 7;
 
     const cells: Array<{ day: number | null; dateKey: string | null }> = [];
@@ -223,7 +386,18 @@ export const ExpeditionCalendar: React.FC<ExpeditionCalendarProps> = ({
     return cells;
   }, [viewYear, viewMonth]);
 
-  const selectedDayEvents = selectedDateKey ? eventsByDate.get(selectedDateKey) || [] : [];
+  // Visible expeditions list: if a calendar day is clicked, filter to that day; otherwise show scopeFilteredEntries
+  const visibleExpeditions = useMemo(() => {
+    if (selectedDateKey) {
+      return categoryParkEvents.filter((e) => parseExpeditionDateKey(e.date) === selectedDateKey);
+    }
+    return scopeFilteredEntries.map((item) => item.evt);
+  }, [selectedDateKey, categoryParkEvents, scopeFilteredEntries]);
+
+  const syncedUpcomingCount = useMemo(
+    () => allUpcomingEvents.filter((item) => syncedEventIds.includes(item.evt.id)).length,
+    [allUpcomingEvents, syncedEventIds]
+  );
 
   const totalMonthExpeditions = monthEventDates.reduce(
     (sum, k) => sum + (eventsByDate.get(k)?.length || 0),
@@ -232,21 +406,26 @@ export const ExpeditionCalendar: React.FC<ExpeditionCalendarProps> = ({
 
   return (
     <section
-      aria-label="Calendrier mensuel des disponibilités d'expéditions"
+      aria-label="Calendrier visuel des expéditions à venir et synchronisation agenda local"
       className="bg-white dark:bg-slate-900/90 border border-amber-500/35 dark:border-amber-500/25 rounded-3xl p-4 space-y-3.5 shadow-lg dark:shadow-xl"
     >
       {/* Header */}
-      <div className="flex items-center justify-between gap-2">
+      <div className="flex items-start justify-between gap-2">
         <div className="flex items-center gap-2.5 min-w-0">
           <CategoryIcon category="expeditions" size="sm" />
           <div className="min-w-0">
-            <h3 className="font-serif-display font-bold text-sm text-slate-900 dark:text-white truncate">
-              Calendrier des Disponibilités
-            </h3>
+            <div className="flex items-center gap-1.5 flex-wrap">
+              <h3 className="font-serif-display font-bold text-sm text-slate-900 dark:text-white truncate">
+                Calendrier des Expéditions À Venir
+              </h3>
+              <span className="text-[10px] font-mono font-bold px-2 py-0.5 rounded-full bg-amber-500/15 text-amber-800 dark:text-amber-300 border border-amber-500/30">
+                {allUpcomingEvents.length} à venir
+              </span>
+            </div>
             <p className="text-[10px] text-slate-600 dark:text-slate-400">
               {totalMonthExpeditions > 0
-                ? `${totalMonthExpeditions} départ(s) disponible(s) en ${FRENCH_MONTHS[viewMonth]}`
-                : `Aucun départ prévu en ${FRENCH_MONTHS[viewMonth]}`}
+                ? `${totalMonthExpeditions} départ(s) en ${FRENCH_MONTHS[viewMonth]} · Filtrez par date & synchronisez`
+                : `Aucun départ en ${FRENCH_MONTHS[viewMonth]} · Naviguez vers Déc 2026`}
             </p>
           </div>
         </div>
@@ -260,6 +439,111 @@ export const ExpeditionCalendar: React.FC<ExpeditionCalendarProps> = ({
             Nov 2026
           </button>
         )}
+      </div>
+
+      {/* Automatic Local Agenda Sync Control Strip */}
+      <div className="bg-stone-50 dark:bg-slate-950/80 border border-amber-500/30 rounded-2xl p-3 space-y-2">
+        <div className="flex items-center justify-between gap-2">
+          <div className="flex items-center gap-2 min-w-0">
+            <div
+              className={`w-8 h-8 rounded-xl flex items-center justify-center shrink-0 ${
+                autoSyncEnabled
+                  ? 'bg-emerald-500/20 text-emerald-700 dark:text-emerald-400 border border-emerald-500/40'
+                  : 'bg-amber-500/15 text-amber-700 dark:text-amber-400 border border-amber-500/30'
+              }`}
+            >
+              <CalendarCheck className="w-4 h-4" />
+            </div>
+            <div className="min-w-0">
+              <span className="text-xs font-bold text-slate-900 dark:text-white block truncate">
+                Synchro auto agenda local (.ics)
+              </span>
+              <span className="text-[10px] text-slate-600 dark:text-slate-400 block truncate">
+                {syncedUpcomingCount}/{allUpcomingEvents.length} à venir synchronisée(s)
+                {lastSyncedAt ? ` · Dernière synchro ${lastSyncedAt}` : ''}
+              </span>
+            </div>
+          </div>
+
+          <button
+            type="button"
+            role="switch"
+            aria-checked={autoSyncEnabled}
+            onClick={handleToggleAutoSync}
+            className={`w-11 h-6 rounded-full p-0.5 transition flex items-center shrink-0 ${
+              autoSyncEnabled
+                ? 'bg-emerald-500 justify-end shadow-sm'
+                : 'bg-stone-300 dark:bg-slate-700 justify-start'
+            }`}
+            title={
+              autoSyncEnabled
+                ? 'Désactiver la synchronisation automatique'
+                : 'Activer la synchronisation automatique vers votre agenda local'
+            }
+          >
+            <span className="w-5 h-5 rounded-full bg-white shadow" />
+          </button>
+        </div>
+
+        {syncFeedback && (
+          <div className="p-2 rounded-xl bg-emerald-50 dark:bg-emerald-950/75 border border-emerald-500/40 text-[10px] font-semibold text-emerald-800 dark:text-emerald-200 flex items-center gap-1.5 animate-in fade-in">
+            <Check className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400 shrink-0" />
+            <span>{syncFeedback}</span>
+          </div>
+        )}
+      </div>
+
+      {/* Period & Category Filter Controls */}
+      <div className="space-y-2">
+        {/* Date Period Filter Chips */}
+        <div className="flex gap-1.5 overflow-x-auto no-scrollbar py-0.5">
+          {[
+            { id: 'upcoming', label: '🗓️ À venir' },
+            { id: 'weekends', label: '🏕️ Week-ends' },
+            { id: 'month', label: `📅 ${SHORT_FRENCH_MONTHS[viewMonth]}` },
+            { id: 'all', label: 'Toutes dates' },
+          ].map((item) => (
+            <button
+              key={item.id}
+              type="button"
+              onClick={() => {
+                setDateScope(item.id as DateScopeFilter);
+                setSelectedDateKey(null);
+              }}
+              className={`min-h-[36px] px-2.5 py-1 rounded-xl text-[11px] font-semibold whitespace-nowrap transition ${
+                dateScope === item.id && !selectedDateKey
+                  ? 'copper-gradient text-slate-950 font-bold shadow-sm'
+                  : 'bg-stone-100 dark:bg-slate-950 border border-stone-200 dark:border-white/10 text-slate-700 dark:text-slate-300 hover:border-amber-500/40'
+              }`}
+            >
+              {item.label}
+            </button>
+          ))}
+        </div>
+
+        {/* Category Filter Chips */}
+        <div className="flex items-center gap-1.5 overflow-x-auto no-scrollbar py-0.5">
+          <Filter className="w-3 h-3 text-slate-400 shrink-0" />
+          {[
+            { id: 'ALL', label: 'Toutes catégories' },
+            { id: 'PUBLIC', label: 'Sorties Publiques' },
+            { id: 'PRIVATE', label: 'Privées' },
+            { id: 'INSTITUTIONAL', label: 'Éco-volontariat' },
+          ].map((cat) => (
+            <button
+              key={cat.id}
+              type="button"
+              onClick={() => setCategoryFilter(cat.id as CategoryFilter)}
+              className={`px-2 py-1 rounded-lg text-[10px] font-semibold whitespace-nowrap transition ${
+                categoryFilter === cat.id
+                  ? 'bg-amber-500 text-slate-950 font-bold'
+                  : 'bg-stone-50 dark:bg-slate-950/70 border border-stone-200 dark:border-white/5 text-slate-600 dark:text-slate-400'
+              }`}
+            >
+              {cat.label}
+            </button>
+          ))}
+        </div>
       </div>
 
       {/* Month Switcher */}
@@ -301,7 +585,7 @@ export const ExpeditionCalendar: React.FC<ExpeditionCalendarProps> = ({
         ))}
       </div>
 
-      {/* Calendar Grid */}
+      {/* Visual Calendar Grid */}
       <div className="grid grid-cols-7 gap-1.5">
         {calendarCells.map((cell, idx) => {
           if (!cell.day || !cell.dateKey) {
@@ -313,12 +597,15 @@ export const ExpeditionCalendar: React.FC<ExpeditionCalendarProps> = ({
           const isSelected = selectedDateKey === cell.dateKey;
           const isToday = cell.dateKey === todayKey;
           const isFree = dayEvents.some((e) => e.basePrice === 0);
+          const hasSyncedOnDay = dayEvents.some((e) => syncedEventIds.includes(e.id));
 
           return (
             <button
               key={cell.dateKey}
               type="button"
-              onClick={() => setSelectedDateKey(cell.dateKey)}
+              onClick={() =>
+                setSelectedDateKey((prev) => (prev === cell.dateKey ? null : cell.dateKey))
+              }
               aria-label={`${cell.day} ${FRENCH_MONTHS[viewMonth]} ${viewYear}${
                 hasExpedition ? ` - ${dayEvents.length} expédition disponible` : ''
               }`}
@@ -334,15 +621,25 @@ export const ExpeditionCalendar: React.FC<ExpeditionCalendarProps> = ({
             >
               <span>{cell.day}</span>
               {hasExpedition && (
-                <span
-                  className={`w-1.5 h-1.5 rounded-full mt-0.5 ${
-                    isSelected
-                      ? 'bg-slate-950'
-                      : isFree
-                      ? 'bg-emerald-600 dark:bg-emerald-400'
-                      : 'bg-amber-600 dark:bg-amber-400'
-                  }`}
-                />
+                <div className="flex items-center gap-0.5 mt-0.5">
+                  <span
+                    className={`w-1.5 h-1.5 rounded-full ${
+                      isSelected
+                        ? 'bg-slate-950'
+                        : isFree
+                        ? 'bg-emerald-600 dark:bg-emerald-400'
+                        : 'bg-amber-600 dark:bg-amber-400'
+                    }`}
+                  />
+                  {hasSyncedOnDay && (
+                    <span
+                      className={`w-1.5 h-1.5 rounded-full ${
+                        isSelected ? 'bg-emerald-950' : 'bg-emerald-500'
+                      }`}
+                      title="Synchronisé dans l'agenda local"
+                    />
+                  )}
+                </div>
               )}
               {isToday && !hasExpedition && !isSelected && (
                 <span className="w-1 h-1 rounded-full bg-emerald-600 dark:bg-emerald-400 mt-0.5" />
@@ -352,103 +649,203 @@ export const ExpeditionCalendar: React.FC<ExpeditionCalendarProps> = ({
         })}
       </div>
 
-      {/* Compact Legend */}
+      {/* Quick Upcoming Date Chips Strip */}
+      {allUpcomingEvents.length > 0 && (
+        <div className="space-y-1.5 pt-1 border-t border-stone-200 dark:border-white/5">
+          <div className="flex items-center justify-between gap-2">
+            <span className="text-[10px] font-bold text-slate-600 dark:text-slate-400 uppercase tracking-wider">
+              Prochaines dates au calendrier :
+            </span>
+            {selectedDateKey && (
+              <button
+                type="button"
+                onClick={() => setSelectedDateKey(null)}
+                className="text-[10px] font-bold text-amber-700 dark:text-amber-400 flex items-center gap-0.5"
+              >
+                <X className="w-3 h-3" />
+                <span>Réinitialiser le jour</span>
+              </button>
+            )}
+          </div>
+          <div className="flex gap-1.5 overflow-x-auto no-scrollbar py-0.5">
+            {allUpcomingEvents.map(({ evt, dateKey }) => {
+              const isChipSelected = selectedDateKey === dateKey;
+              return (
+                <button
+                  key={`${evt.id}-${dateKey}`}
+                  type="button"
+                  onClick={() => handleSelectDateChip(dateKey)}
+                  className={`px-2.5 py-1.5 rounded-xl text-[10px] font-semibold whitespace-nowrap border flex items-center gap-1 transition ${
+                    isChipSelected
+                      ? 'copper-gradient text-slate-950 border-amber-500 font-bold shadow-sm'
+                      : 'bg-stone-50 dark:bg-slate-950/75 border-stone-200 dark:border-white/10 text-slate-700 dark:text-slate-300 hover:border-amber-500/40'
+                  }`}
+                >
+                  <Calendar className="w-3 h-3 shrink-0" />
+                  <span>{formatShortChipDate(dateKey)}</span>
+                  <span className="opacity-75">· {evt.location.split(',')[0]}</span>
+                </button>
+              );
+            })}
+          </div>
+        </div>
+      )}
+
+      {/* Compact Legend + Export All Filtered Button */}
       <div className="flex flex-wrap items-center justify-between gap-2 text-[10px] text-slate-600 dark:text-slate-400 pt-1 border-t border-stone-200 dark:border-white/5">
         <div className="flex items-center gap-3">
           <span className="flex items-center gap-1.5">
             <span className="w-2 h-2 rounded-full bg-amber-500 dark:bg-amber-400" />
-            <span>Départ disponible</span>
+            <span>Expédition</span>
           </span>
           <span className="flex items-center gap-1.5">
             <span className="w-2 h-2 rounded-full bg-emerald-500 dark:bg-emerald-400" />
-            <span>Éco-volontariat / Aujourd&apos;hui</span>
+            <span>Éco-volontariat / Synchro</span>
           </span>
         </div>
-        {monthEventDates.length === 0 && (
-          <button
-            type="button"
-            onClick={() => {
-              // Jump to Décembre 2026 if Nov has none (or vice versa)
-              if (viewYear === 2026 && viewMonth === 10) {
-                setViewMonth(11);
-              } else {
-                handleResetMonth();
-              }
-            }}
-            className="text-amber-700 dark:text-amber-400 hover:text-amber-600 dark:hover:text-amber-300 font-semibold flex items-center gap-1"
-          >
-            <Sparkles className="w-3 h-3" />
-            <span>Voir mois avec départs</span>
-          </button>
-        )}
+
+        <div className="flex items-center gap-2">
+          {monthEventDates.length === 0 && (
+            <button
+              type="button"
+              onClick={() => {
+                if (viewYear === 2026 && viewMonth === 10) {
+                  setViewMonth(11);
+                } else {
+                  handleResetMonth();
+                }
+              }}
+              className="text-amber-700 dark:text-amber-400 hover:text-amber-600 dark:hover:text-amber-300 font-semibold flex items-center gap-1"
+            >
+              <Sparkles className="w-3 h-3" />
+              <span>Mois avec départs</span>
+            </button>
+          )}
+
+          {visibleExpeditions.length > 0 && (
+            <button
+              type="button"
+              onClick={handleSyncAllVisibleICS}
+              className="px-2.5 py-1 rounded-xl bg-stone-100 dark:bg-slate-950 hover:bg-stone-200 dark:hover:bg-slate-800 border border-stone-200 dark:border-white/10 text-amber-700 dark:text-amber-300 font-bold text-[10px] flex items-center gap-1 transition active:scale-95"
+              title="Exporter toutes les expéditions affichées vers votre agenda local (.ics)"
+            >
+              <RefreshCw className="w-3 h-3" />
+              <span>Exporter ({visibleExpeditions.length}) .ics</span>
+            </button>
+          )}
+        </div>
       </div>
 
-      {/* Selected Day Expedition Details */}
-      {selectedDateKey && (
-        <div className="pt-1 space-y-2">
-          {selectedDayEvents.length > 0 ? (
-            selectedDayEvents.map((evt) => (
+      {/* Filtered Upcoming Expeditions List with Local Agenda Sync */}
+      <div className="pt-1 space-y-2.5">
+        {visibleExpeditions.length > 0 ? (
+          visibleExpeditions.map((evt) => {
+            const isSynced = syncedEventIds.includes(evt.id);
+
+            return (
               <div
                 key={evt.id}
                 className="bg-stone-50 dark:bg-slate-950/85 border border-amber-500/40 dark:border-amber-500/35 rounded-2xl p-3 space-y-2.5 animate-in fade-in"
               >
                 <div className="flex items-start justify-between gap-2">
                   <div className="min-w-0">
-                    <span className="text-[10px] font-bold text-amber-700 dark:text-amber-400 block truncate">
-                      {evt.date} · {evt.parkName}
-                    </span>
-                    <h4 className="font-bold text-xs text-slate-900 dark:text-white truncate mt-0.5">{evt.title}</h4>
+                    <div className="flex items-center gap-1.5 flex-wrap">
+                      <span className="text-[10px] font-bold text-amber-700 dark:text-amber-400 truncate">
+                        {evt.date} · {evt.parkName}
+                      </span>
+                      {isSynced && (
+                        <span className="text-[9px] font-bold px-1.5 py-0.2 rounded-full bg-emerald-500/15 text-emerald-700 dark:text-emerald-300 border border-emerald-500/35">
+                          ✓ Agenda local
+                        </span>
+                      )}
+                    </div>
+                    <h4 className="font-bold text-xs text-slate-900 dark:text-white truncate mt-0.5">
+                      {evt.title}
+                    </h4>
                   </div>
                   <span className="text-xs font-black font-mono text-amber-700 dark:text-amber-400 shrink-0 tabular-nums">
                     {evt.basePrice === 0 ? 'Gratuit' : `${evt.basePrice.toLocaleString('fr-FR')} F`}
                   </span>
                 </div>
 
-                <div className="flex items-center justify-between gap-2 text-[10px] text-slate-600 dark:text-slate-400">
-                  <div className="flex items-center gap-2 min-w-0 truncate">
-                    <span className="flex items-center gap-1 truncate">
-                      <MapPin className="w-3 h-3 text-amber-600 dark:text-amber-500 shrink-0" />
-                      {evt.location}
-                    </span>
-                    <span aria-hidden="true">·</span>
-                    <span className="flex items-center gap-1 shrink-0">
-                      <Clock className="w-3 h-3 text-emerald-600 dark:text-emerald-400 shrink-0" />
-                      {evt.duration}
-                    </span>
+                <div className="flex items-center gap-2 text-[10px] text-slate-600 dark:text-slate-400 truncate">
+                  <span className="flex items-center gap-1 truncate">
+                    <MapPin className="w-3 h-3 text-amber-600 dark:text-amber-500 shrink-0" />
+                    {evt.location}
+                  </span>
+                  <span aria-hidden="true">·</span>
+                  <span className="flex items-center gap-1 shrink-0">
+                    <Clock className="w-3 h-3 text-emerald-600 dark:text-emerald-400 shrink-0" />
+                    {evt.duration}
+                  </span>
+                </div>
+
+                <div className="pt-2 border-t border-stone-200 dark:border-white/5 flex flex-wrap items-center justify-between gap-1.5">
+                  <div className="flex items-center gap-1.5">
+                    <button
+                      type="button"
+                      onClick={() => handleSyncSingleEventICS(evt)}
+                      className={`min-h-[36px] px-2.5 py-1 rounded-xl font-bold text-[10px] flex items-center gap-1 border transition ${
+                        isSynced
+                          ? 'bg-emerald-50 dark:bg-emerald-950/60 border-emerald-500/40 text-emerald-800 dark:text-emerald-300'
+                          : 'bg-white dark:bg-slate-900 border-stone-200 dark:border-white/10 text-slate-700 dark:text-slate-200 hover:border-amber-500/40'
+                      }`}
+                    >
+                      {isSynced ? (
+                        <Check className="w-3 h-3 text-emerald-600 dark:text-emerald-400" />
+                      ) : (
+                        <CalendarPlus className="w-3 h-3 text-amber-600 dark:text-amber-400" />
+                      )}
+                      <span>{isSynced ? 'Synchronisé (.ics)' : 'Agenda (.ics)'}</span>
+                    </button>
+
+                    <a
+                      href={getEventGoogleCalendarUrl(evt)}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="min-h-[36px] px-2.5 py-1 rounded-xl bg-white dark:bg-slate-900 border border-stone-200 dark:border-white/10 hover:border-amber-500/40 text-slate-700 dark:text-slate-200 font-semibold text-[10px] flex items-center gap-1 transition"
+                    >
+                      <ExternalLink className="w-3 h-3 text-amber-600 dark:text-amber-400" />
+                      <span>Google Agenda</span>
+                    </a>
                   </div>
 
                   <button
                     type="button"
                     onClick={() => onSelectEvent(evt)}
-                    className="px-3 py-1.5 copper-gradient text-slate-950 font-black rounded-xl text-[11px] flex items-center gap-1 shrink-0 shadow active:scale-95 transition whitespace-nowrap"
+                    className="min-h-[36px] px-3 py-1 copper-gradient text-slate-950 font-black rounded-xl text-[11px] flex items-center gap-1 shrink-0 shadow active:scale-95 transition whitespace-nowrap"
                   >
                     <span>Réserver</span>
                     <ArrowRight className="w-3 h-3" />
                   </button>
                 </div>
               </div>
-            ))
-          ) : (
-            <div className="bg-stone-50 dark:bg-slate-950/60 border border-stone-200 dark:border-white/5 rounded-2xl p-3 flex items-center justify-between gap-2 text-xs text-slate-600 dark:text-slate-400">
-              <div className="flex items-center gap-2 min-w-0">
-                <Calendar className="w-4 h-4 text-slate-500 shrink-0" />
-                <span className="text-[11px] truncate">
-                  Aucune expédition groupée le {selectedDateKey.split('-').reverse().join('/')}.
-                </span>
-              </div>
-              {monthEventDates.length > 0 && (
-                <button
-                  type="button"
-                  onClick={() => setSelectedDateKey(monthEventDates[0])}
-                  className="text-[11px] text-amber-700 dark:text-amber-400 hover:text-amber-600 dark:hover:text-amber-300 font-bold shrink-0 whitespace-nowrap"
-                >
-                  Prochain départ →
-                </button>
-              )}
+            );
+          })
+        ) : (
+          <div className="bg-stone-50 dark:bg-slate-950/60 border border-stone-200 dark:border-white/5 rounded-2xl p-3 flex items-center justify-between gap-2 text-xs text-slate-600 dark:text-slate-400">
+            <div className="flex items-center gap-2 min-w-0">
+              <Calendar className="w-4 h-4 text-slate-500 shrink-0" />
+              <span className="text-[11px] truncate">
+                {selectedDateKey
+                  ? `Aucune expédition prévue le ${selectedDateKey.split('-').reverse().join('/')}.`
+                  : 'Aucune expédition correspondante pour ce filtre.'}
+              </span>
             </div>
-          )}
-        </div>
-      )}
+            <button
+              type="button"
+              onClick={() => {
+                setSelectedDateKey(null);
+                setDateScope('upcoming');
+                setCategoryFilter('ALL');
+              }}
+              className="text-[11px] text-amber-700 dark:text-amber-400 hover:text-amber-600 dark:hover:text-amber-300 font-bold shrink-0 whitespace-nowrap"
+            >
+              Voir à venir →
+            </button>
+          </div>
+        )}
+      </div>
     </section>
   );
 };

@@ -25,8 +25,25 @@ service cloud.firestore {
       return request.auth != null && request.auth.token.email_verified == true;
     }
 
+    function isAdmin() {
+      return isSignedIn() && request.auth.token.email == 'stephaneakagah@gmail.com';
+    }
+
     function isValidId(id) {
       return id is string && id.size() >= 1 && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\\-]+$');
+    }
+
+    function isSafeStoredUrl(url) {
+      return url is string
+        && url.size() >= 1
+        && url.size() <= 2048
+        && !url.matches('.*\\.\\..*')
+        && (
+          url.matches('^https://[^\\s]+$') ||
+          url.matches('^http://localhost(:[0-9]+)?/[^\\s]*$') ||
+          url.matches('^http://127\\.0\\.0\\.1(:[0-9]+)?/[^\\s]*$') ||
+          url.matches('^/assets/[a-zA-Z0-9_./\\-]+$')
+        );
     }
 
     function isOwner(userId) {
@@ -35,6 +52,26 @@ service cloud.firestore {
 
     function userExists(userId) {
       return exists(/databases/$(database)/documents/users/$(userId));
+    }
+
+    function activityExists(activityId) {
+      return exists(/databases/$(database)/documents/community_activities/$(activityId));
+    }
+
+    function directChatExists(chatId) {
+      return exists(/databases/$(database)/documents/direct_chats/$(chatId));
+    }
+
+    function directChatParent(chatId) {
+      return get(/databases/$(database)/documents/direct_chats/$(chatId)).data;
+    }
+
+    function directChatExistsAfter(chatId) {
+      return existsAfter(/databases/$(database)/documents/direct_chats/$(chatId));
+    }
+
+    function directChatParentAfter(chatId) {
+      return getAfter(/databases/$(database)/documents/direct_chats/$(chatId)).data;
     }
 
     // =========================================================================
@@ -46,6 +83,7 @@ service cloud.firestore {
         ])
         && data.keys().hasOnly([
           'uid', 'name', 'role', 'phone', 'email', 'avatar',
+          'bio', 'homeCity', 'favoritePark', 'publicDiscoverable',
           'totalKm', 'totalAscent', 'stepsCount', 'subscription',
           'favoritePhotoIds', 'topThreePhotoIds',
           'ecoPoints', 'zeroWasteExpeditionsCount', 'unlockedBadgeIds',
@@ -56,11 +94,15 @@ service cloud.firestore {
         && data.email is string && data.email.size() >= 3 && data.email.size() <= 160
         && (!('role' in data) || (data.role is string && data.role.size() <= 80))
         && (!('phone' in data) || (data.phone is string && data.phone.size() <= 40))
-        && (!('avatar' in data) || (data.avatar is string && data.avatar.size() <= 500))
+        && (!('avatar' in data) || (data.avatar is string && data.avatar.size() <= 1000 && (data.avatar == '' || isSafeStoredUrl(data.avatar))))
+        && (!('bio' in data) || (data.bio is string && data.bio.size() <= 400))
+        && (!('homeCity' in data) || (data.homeCity is string && data.homeCity.size() <= 80))
+        && (!('favoritePark' in data) || (data.favoritePark is string && data.favoritePark.size() <= 100))
+        && (!('publicDiscoverable' in data) || data.publicDiscoverable is bool)
         && data.totalKm is number && data.totalKm >= 0 && data.totalKm <= 1000000
         && data.totalAscent is number && data.totalAscent >= 0 && data.totalAscent <= 10000000
         && data.stepsCount is number && data.stepsCount >= 0 && data.stepsCount <= 1000000000
-        && data.subscription in ['Starter (500 F)', 'Club Medium (1 000 F)', 'Pro Expé (2 000 F)']
+        && data.subscription in ['Gratuit (0 F)', 'Starter (500 F)', 'Club Medium (1 000 F)', 'Pro Expé (2 000 F)']
         && (!('favoritePhotoIds' in data) || (
           data.favoritePhotoIds is list && data.favoritePhotoIds.size() <= 20 &&
           (data.favoritePhotoIds.size() == 0 || (data.favoritePhotoIds[0] is string && data.favoritePhotoIds[0].size() <= 128))
@@ -102,7 +144,7 @@ service cloud.firestore {
         && data.tentIncluded is bool
         && data.guideIncluded is bool
         && data.totalAmount is number && data.totalAmount >= 0 && data.totalAmount <= 50000000
-        && data.paymentMethod in ['AIRTEL', 'MOOV']
+        && data.paymentMethod in ['AIRTEL', 'MOOV', 'GHETTOPAY']
         && data.payerPhone is string && data.payerPhone.size() <= 40
         && data.timestamp is string && data.timestamp.size() <= 64
         && data.status in ['CONFIRMED', 'USED']
@@ -142,7 +184,8 @@ service cloud.firestore {
         && data.keys().hasOnly([
           'id', 'userId', 'eventId', 'eventTitle', 'parkName',
           'badgeId', 'badgeName', 'badgeIcon',
-          'wasteBagReturned', 'leaveNoTracePledge', 'wasteNote', 'ecoPoints',
+          'wasteBagReturned', 'leaveNoTracePledge', 'wasteNote',
+          'proofPhotoUrl', 'proofStoragePath', 'ecoPoints',
           'completedAtLabel', 'createdAt'
         ])
         && data.id is string && data.id == challengeId && isValidId(data.id)
@@ -156,6 +199,8 @@ service cloud.firestore {
         && data.wasteBagReturned is bool && data.wasteBagReturned == true
         && data.leaveNoTracePledge is bool && data.leaveNoTracePledge == true
         && (!('wasteNote' in data) || (data.wasteNote is string && data.wasteNote.size() <= 300))
+        && (!('proofPhotoUrl' in data) || (data.proofPhotoUrl is string && data.proofPhotoUrl.size() <= 1000 && isSafeStoredUrl(data.proofPhotoUrl)))
+        && (!('proofStoragePath' in data) || (data.proofStoragePath is string && data.proofStoragePath.size() <= 300 && data.proofStoragePath.matches('^eco-challenge-proofs/' + userId + '/[a-zA-Z0-9_.\\-]+$') && !data.proofStoragePath.matches('.*\\.\\..*')))
         && data.ecoPoints is int && data.ecoPoints >= 50 && data.ecoPoints <= 500
         && data.completedAtLabel is string && data.completedAtLabel.size() >= 1 && data.completedAtLabel.size() <= 64
         && data.createdAt is timestamp;
@@ -174,11 +219,411 @@ service cloud.firestore {
         && data.eventId is string && isValidId(data.eventId)
         && data.userId is string && data.userId == request.auth.uid && isValidId(data.userId)
         && data.authorName is string && data.authorName.size() >= 1 && data.authorName.size() <= 80
-        && (!('authorAvatar' in data) || (data.authorAvatar is string && data.authorAvatar.size() <= 500))
+        && (!('authorAvatar' in data) || (data.authorAvatar is string && data.authorAvatar.size() <= 500 && isSafeStoredUrl(data.authorAvatar)))
         && data.rating is int && data.rating >= 1 && data.rating <= 5
         && data.comment is string && data.comment.size() >= 3 && data.comment.size() <= 400
-        && (!('photoUrl' in data) || (data.photoUrl is string && data.photoUrl.size() <= 500))
+        && (!('photoUrl' in data) || (data.photoUrl is string && data.photoUrl.size() <= 500 && isSafeStoredUrl(data.photoUrl)))
         && data.visibility is string && data.visibility == 'PUBLIC'
+        && data.createdAtLabel is string && data.createdAtLabel.size() >= 1 && data.createdAtLabel.size() <= 64
+        && data.createdAt is timestamp;
+    }
+
+    function isValidEcoLog(data, userId, logId) {
+      return data.keys().hasAll([
+          'id', 'userId', 'speciesName', 'category', 'parkName', 'observedAt', 'notes', 'createdAt', 'updatedAt'
+        ])
+        && data.keys().hasOnly([
+          'id', 'userId', 'speciesName', 'category', 'parkName', 'observedAt', 'notes', 'weatherOrContext', 'createdAt', 'updatedAt'
+        ])
+        && data.id is string && data.id == logId && isValidId(data.id)
+        && data.userId is string && data.userId == userId && isValidId(data.userId)
+        && data.speciesName is string && data.speciesName.size() >= 2 && data.speciesName.size() <= 120
+        && data.category in ['FAUNE', 'FLORE', 'MARINE', 'OISEAUX']
+        && data.parkName is string && data.parkName.size() >= 2 && data.parkName.size() <= 120
+        && data.observedAt is string && data.observedAt.size() >= 4 && data.observedAt.size() <= 32
+        && data.notes is string && data.notes.size() >= 3 && data.notes.size() <= 800
+        && (!('weatherOrContext' in data) || (data.weatherOrContext is string && data.weatherOrContext.size() <= 160))
+        && data.createdAt is timestamp
+        && data.updatedAt is timestamp;
+    }
+
+    function isValidTrustedContact(data, userId, contactId) {
+      return data.keys().hasAll([
+          'id', 'userId', 'resourceName', 'displayName', 'shareSafetyAlerts', 'shareExpeditionPlans', 'createdAt', 'updatedAt'
+        ])
+        && data.keys().hasOnly([
+          'id', 'userId', 'resourceName', 'displayName', 'phoneNumber', 'email', 'photoUrl', 'relationTag', 'shareSafetyAlerts', 'shareExpeditionPlans', 'createdAt', 'updatedAt'
+        ])
+        && data.id is string && data.id == contactId && isValidId(data.id)
+        && data.userId is string && data.userId == userId && isValidId(data.userId)
+        && data.resourceName is string && data.resourceName.size() >= 1 && data.resourceName.size() <= 160
+        && data.displayName is string && data.displayName.size() >= 1 && data.displayName.size() <= 100
+        && (!('phoneNumber' in data) || (data.phoneNumber is string && data.phoneNumber.size() <= 40))
+        && (!('email' in data) || (data.email is string && data.email.size() <= 160))
+        && (!('photoUrl' in data) || (data.photoUrl is string && data.photoUrl.size() <= 500 && isSafeStoredUrl(data.photoUrl)))
+        && (!('relationTag' in data) || (data.relationTag is string && data.relationTag.size() <= 60))
+        && data.shareSafetyAlerts is bool
+        && data.shareExpeditionPlans is bool
+        && data.createdAt is timestamp
+        && data.updatedAt is timestamp;
+    }
+
+    function isValidCommunityActivity(data, activityId) {
+      return data.keys().hasAll([
+          'id', 'userId', 'authorName', 'parkName', 'activityType', 'title',
+          'description', 'visibility', 'createdAtLabel', 'createdAt'
+        ])
+        && data.keys().hasOnly([
+          'id', 'userId', 'authorName', 'authorAvatar', 'parkName', 'activityType',
+          'title', 'description', 'photoUrl', 'distanceKm', 'elevationM',
+          'visibility', 'createdAtLabel', 'createdAt'
+        ])
+        && data.id is string && data.id == activityId && isValidId(data.id)
+        && data.userId is string && data.userId == request.auth.uid && isValidId(data.userId)
+        && data.authorName is string && data.authorName.size() >= 1 && data.authorName.size() <= 80
+        && (!('authorAvatar' in data) || (data.authorAvatar is string && data.authorAvatar.size() <= 500 && isSafeStoredUrl(data.authorAvatar)))
+        && data.parkName is string && data.parkName.size() >= 2 && data.parkName.size() <= 120
+        && data.activityType in ['RANDONNEE', 'FAUNE', 'BIVOUAC', 'ECO_ACTION']
+        && data.title is string && data.title.size() >= 3 && data.title.size() <= 120
+        && data.description is string && data.description.size() >= 3 && data.description.size() <= 600
+        && (!('photoUrl' in data) || (data.photoUrl is string && data.photoUrl.size() <= 1000 && isSafeStoredUrl(data.photoUrl)))
+        && (!('distanceKm' in data) || (data.distanceKm is number && data.distanceKm >= 0 && data.distanceKm <= 500))
+        && (!('elevationM' in data) || (data.elevationM is int && data.elevationM >= 0 && data.elevationM <= 10000))
+        && data.visibility is string && data.visibility == 'PUBLIC'
+        && data.createdAtLabel is string && data.createdAtLabel.size() >= 1 && data.createdAtLabel.size() <= 64
+        && data.createdAt is timestamp;
+    }
+
+    function isValidActivityComment(data, activityId, commentId) {
+      return data.keys().hasAll([
+          'id', 'activityId', 'userId', 'authorName', 'text', 'visibility', 'createdAtLabel', 'createdAt'
+        ])
+        && data.keys().hasOnly([
+          'id', 'activityId', 'userId', 'authorName', 'authorAvatar', 'text', 'visibility', 'createdAtLabel', 'createdAt'
+        ])
+        && data.id is string && data.id == commentId && isValidId(data.id)
+        && data.activityId is string && data.activityId == activityId && isValidId(data.activityId)
+        && data.userId is string && data.userId == request.auth.uid && isValidId(data.userId)
+        && data.authorName is string && data.authorName.size() >= 1 && data.authorName.size() <= 80
+        && (!('authorAvatar' in data) || (data.authorAvatar is string && data.authorAvatar.size() <= 500 && isSafeStoredUrl(data.authorAvatar)))
+        && data.text is string && data.text.size() >= 2 && data.text.size() <= 400
+        && data.visibility is string && data.visibility == 'PUBLIC'
+        && data.createdAtLabel is string && data.createdAtLabel.size() >= 1 && data.createdAtLabel.size() <= 64
+        && data.createdAt is timestamp;
+    }
+
+    function isValidActivityLike(data, activityId, likeUserId) {
+      return data.keys().hasAll(['activityId', 'userId', 'visibility', 'createdAt'])
+        && data.keys().hasOnly(['activityId', 'userId', 'visibility', 'createdAt'])
+        && data.activityId is string && data.activityId == activityId && isValidId(data.activityId)
+        && data.userId is string && data.userId == likeUserId && data.userId == request.auth.uid && isValidId(data.userId)
+        && data.visibility is string && data.visibility == 'PUBLIC'
+        && data.createdAt is timestamp;
+    }
+
+    function isValidChatMessage(data, messageId) {
+      return data.keys().hasAll([
+          'id', 'roomId', 'userId', 'authorName', 'text', 'visibility', 'createdAtLabel', 'createdAt'
+        ])
+        && data.keys().hasOnly([
+          'id', 'roomId', 'userId', 'authorName', 'authorAvatar', 'text', 'visibility', 'createdAtLabel', 'createdAt'
+        ])
+        && data.id is string && data.id == messageId && isValidId(data.id)
+        && data.roomId in ['general', 'mondah', 'ivindo', 'pongara', 'cristal']
+        && data.userId is string && data.userId == request.auth.uid && isValidId(data.userId)
+        && data.authorName is string && data.authorName.size() >= 1 && data.authorName.size() <= 80
+        && (!('authorAvatar' in data) || (data.authorAvatar is string && data.authorAvatar.size() <= 500 && isSafeStoredUrl(data.authorAvatar)))
+        && data.text is string && data.text.size() >= 1 && data.text.size() <= 500
+        && data.visibility is string && data.visibility == 'PUBLIC'
+        && data.createdAtLabel is string && data.createdAtLabel.size() >= 1 && data.createdAtLabel.size() <= 64
+        && data.createdAt is timestamp;
+    }
+
+    function isValidMarketplaceOrder(data, userId, orderId) {
+      return data.keys().hasAll([
+          'id', 'userId', 'refNumber', 'idempotencyKey', 'itemsSummary', 'itemsJson',
+          'itemsSubtotal', 'deliveryFee', 'depositTotal', 'platformCommission',
+          'vendorNetAmount', 'grandTotalCharged', 'paymentMethod', 'paymentStatus',
+          'fulfillmentStatus', 'payerLabel', 'timestamp', 'receiptHash', 'createdAt', 'updatedAt'
+        ])
+        && data.keys().hasOnly([
+          'id', 'userId', 'refNumber', 'idempotencyKey', 'itemsSummary', 'itemsJson',
+          'itemsSubtotal', 'deliveryFee', 'depositTotal', 'platformCommission',
+          'vendorNetAmount', 'grandTotalCharged', 'paymentMethod', 'paymentStatus',
+          'fulfillmentStatus', 'payerLabel', 'deliveryAddress', 'timestamp', 'receiptHash',
+          'refundReason', 'refundedAtLabel', 'createdAt', 'updatedAt'
+        ])
+        && data.id is string && data.id == orderId && isValidId(data.id)
+        && data.userId is string && data.userId == userId && isValidId(data.userId)
+        && data.refNumber is string && data.refNumber.size() >= 3 && data.refNumber.size() <= 64
+        && data.idempotencyKey is string && data.idempotencyKey.size() >= 8 && data.idempotencyKey.size() <= 128
+        && data.itemsSummary is string && data.itemsSummary.size() >= 2 && data.itemsSummary.size() <= 500
+        && data.itemsJson is string && data.itemsJson.size() >= 2 && data.itemsJson.size() <= 12000
+        && data.itemsSubtotal is number && data.itemsSubtotal >= 0 && data.itemsSubtotal <= 50000000
+        && data.deliveryFee is number && data.deliveryFee >= 0 && data.deliveryFee <= 500000
+        && data.depositTotal is number && data.depositTotal >= 0 && data.depositTotal <= 50000000
+        && data.platformCommission is number && data.platformCommission >= 0 && data.platformCommission <= 10000000
+        && data.vendorNetAmount is number && data.vendorNetAmount >= 0 && data.vendorNetAmount <= 50000000
+        && data.grandTotalCharged is number && data.grandTotalCharged >= 0 && data.grandTotalCharged <= 50000000
+        && data.paymentMethod in ['AIRTEL', 'MOOV', 'GHETTOPAY', 'CARD']
+        && data.paymentStatus in ['CONFIRMED', 'PENDING', 'FAILED', 'REFUNDED']
+        && data.fulfillmentStatus in [
+          'PENDING_VENDOR', 'CONFIRMED', 'PREPARING', 'READY_PICKUP',
+          'IN_DELIVERY', 'COMPLETED', 'REFUNDED', 'CANCELLED'
+        ]
+        && data.payerLabel is string && data.payerLabel.size() >= 2 && data.payerLabel.size() <= 64
+        && (!('deliveryAddress' in data) || (data.deliveryAddress is string && data.deliveryAddress.size() <= 200))
+        && data.timestamp is string && data.timestamp.size() <= 64
+        && data.receiptHash is string && data.receiptHash.size() >= 6 && data.receiptHash.size() <= 128
+        && (!('refundReason' in data) || (data.refundReason is string && data.refundReason.size() <= 200))
+        && (!('refundedAtLabel' in data) || (data.refundedAtLabel is string && data.refundedAtLabel.size() <= 64))
+        && data.createdAt is timestamp
+        && data.updatedAt is timestamp;
+    }
+
+    function isValidVendorListing(data, listingId) {
+      return data.keys().hasAll([
+          'id', 'ownerUserId', 'ownerName', 'listingKind', 'title', 'category',
+          'location', 'price', 'stockOrCapacity', 'description', 'status',
+          'visibility', 'createdAtLabel', 'createdAt', 'updatedAt'
+        ])
+        && data.keys().hasOnly([
+          'id', 'ownerUserId', 'ownerName', 'ownerRole', 'listingKind', 'title', 'category',
+          'productCategory', 'rentalCategory', 'storeId', 'storeName', 'specialtyTag', 'deliveryAvailable',
+          'location', 'locationEnabled', 'lat', 'lng', 'price', 'depositAmount', 'stockOrCapacity', 'description', 'status',
+          'visibility', 'createdAtLabel', 'createdAt', 'updatedAt'
+        ])
+        && data.id is string && data.id == listingId && isValidId(data.id)
+        && data.ownerUserId is string && isValidId(data.ownerUserId)
+        && data.ownerName is string && data.ownerName.size() >= 1 && data.ownerName.size() <= 80
+        && (!('ownerRole' in data) || data.ownerRole in ['pro', 'store'])
+        && data.listingKind in ['activity', 'product', 'rental']
+        && data.title is string && data.title.size() >= 3 && data.title.size() <= 120
+        && data.category is string && data.category.size() >= 2 && data.category.size() <= 60
+        && (!('productCategory' in data) || data.productCategory in [
+          'randonnee', 'camping', 'chaussures_vetements', 'optique_photo', 'eclairage_gadgets', 'lifestyle_mangorema'
+        ])
+        && (!('rentalCategory' in data) || data.rentalCategory in [
+          'tente', 'sac_a_dos', 'vtt', 'balise_gps', 'bivouac'
+        ])
+        && (!('storeId' in data) || isValidId(data.storeId))
+        && (!('storeName' in data) || (data.storeName is string && data.storeName.size() <= 100))
+        && (!('specialtyTag' in data) || (data.specialtyTag is string && data.specialtyTag.size() <= 60))
+        && (!('deliveryAvailable' in data) || data.deliveryAvailable is bool)
+        && data.location is string && data.location.size() >= 2 && data.location.size() <= 120
+        && (!('locationEnabled' in data) || data.locationEnabled is bool)
+        && (!('lat' in data) || (data.lat is number && data.lat >= -90 && data.lat <= 90))
+        && (!('lng' in data) || (data.lng is number && data.lng >= -180 && data.lng <= 180))
+        && data.price is number && data.price >= 0 && data.price <= 10000000
+        && (!('depositAmount' in data) || (data.depositAmount is number && data.depositAmount >= 0 && data.depositAmount <= 5000000))
+        && data.stockOrCapacity is int && data.stockOrCapacity >= 0 && data.stockOrCapacity <= 1000
+        && data.description is string && data.description.size() >= 5 && data.description.size() <= 600
+        && data.status in ['ACTIVE', 'PAUSED']
+        && data.visibility is string && data.visibility == 'PUBLIC'
+        && data.createdAtLabel is string && data.createdAtLabel.size() >= 1 && data.createdAtLabel.size() <= 64
+        && data.createdAt is timestamp
+        && data.updatedAt is timestamp;
+    }
+
+    function isValidProfessionalProfile(data, profileId) {
+      return data.keys().hasAll([
+          'id', 'ownerUserId', 'displayName', 'specialty', 'title',
+          'certifications', 'parks', 'languages', 'expertiseTags',
+          'dayRate', 'availability', 'bio', 'status', 'visibility',
+          'createdAtLabel', 'createdAt', 'updatedAt'
+        ])
+        && data.keys().hasOnly([
+          'id', 'ownerUserId', 'displayName', 'specialty', 'customSpecialty',
+          'title', 'anpnLicense', 'certifications', 'parks', 'languages', 'expertiseTags',
+          'dayRate', 'availability', 'availabilityNote', 'bio', 'photoUrl',
+          'status', 'visibility', 'createdAtLabel', 'createdAt', 'updatedAt'
+        ])
+        && data.id is string && data.id == profileId && isValidId(data.id)
+        && data.ownerUserId is string && isValidId(data.ownerUserId)
+        && data.displayName is string && data.displayName.size() >= 2 && data.displayName.size() <= 80
+        && data.specialty in [
+          'guide_anpn', 'ornithologue', 'botaniste', 'pisteur',
+          'photographe', 'ecoguide', 'operateur', 'autre'
+        ]
+        && (!('customSpecialty' in data) || (data.customSpecialty is string && data.customSpecialty.size() <= 60))
+        && data.title is string && data.title.size() >= 2 && data.title.size() <= 100
+        && (!('anpnLicense' in data) || (data.anpnLicense is string && data.anpnLicense.size() <= 60))
+        && data.certifications is list && data.certifications.size() <= 8
+        && (data.certifications.size() == 0 || (data.certifications[0] is string && data.certifications[0].size() <= 64))
+        && data.parks is list && data.parks.size() <= 10
+        && (data.parks.size() == 0 || (data.parks[0] is string && data.parks[0].size() <= 64))
+        && data.languages is list && data.languages.size() <= 8
+        && (data.languages.size() == 0 || (data.languages[0] is string && data.languages[0].size() <= 40))
+        && data.expertiseTags is list && data.expertiseTags.size() <= 10
+        && (data.expertiseTags.size() == 0 || (data.expertiseTags[0] is string && data.expertiseTags[0].size() <= 60))
+        && data.dayRate is number && data.dayRate >= 0 && data.dayRate <= 5000000
+        && data.availability in ['DISPONIBLE', 'SUR_DEMANDE_24H', 'COMPLET']
+        && (!('availabilityNote' in data) || (data.availabilityNote is string && data.availabilityNote.size() <= 160))
+        && data.bio is string && data.bio.size() >= 10 && data.bio.size() <= 600
+        && (!('photoUrl' in data) || (data.photoUrl is string && data.photoUrl.size() <= 500 && (data.photoUrl == '' || isSafeStoredUrl(data.photoUrl))))
+        && data.status in ['ACTIVE', 'PAUSED']
+        && data.visibility is string && data.visibility == 'PUBLIC'
+        && data.createdAtLabel is string && data.createdAtLabel.size() >= 1 && data.createdAtLabel.size() <= 64
+        && data.createdAt is timestamp
+        && data.updatedAt is timestamp;
+    }
+
+    function isValidStoreProfile(data, storeId) {
+      return data.keys().hasAll([
+          'id', 'ownerUserId', 'storeName', 'storeType', 'cityZone',
+          'pickupAddress', 'openingHours', 'deliveryAvailable', 'deliveryFee',
+          'description', 'status', 'visibility', 'createdAtLabel', 'createdAt', 'updatedAt'
+        ])
+        && data.keys().hasOnly([
+          'id', 'ownerUserId', 'storeName', 'storeType', 'cityZone',
+          'pickupAddress', 'openingHours', 'deliveryAvailable', 'deliveryFee',
+          'deliveryZones', 'description', 'logoUrl', 'status', 'visibility',
+          'createdAtLabel', 'createdAt', 'updatedAt'
+        ])
+        && data.id is string && data.id == storeId && isValidId(data.id)
+        && data.ownerUserId is string && isValidId(data.ownerUserId)
+        && data.storeName is string && data.storeName.size() >= 2 && data.storeName.size() <= 100
+        && data.storeType in ['outdoor_shop', 'rental_agency', 'optique_photo', 'marine_nautique', 'multi_sport']
+        && data.cityZone is string && data.cityZone.size() >= 2 && data.cityZone.size() <= 80
+        && data.pickupAddress is string && data.pickupAddress.size() >= 3 && data.pickupAddress.size() <= 160
+        && data.openingHours is string && data.openingHours.size() >= 3 && data.openingHours.size() <= 100
+        && data.deliveryAvailable is bool
+        && data.deliveryFee is number && data.deliveryFee >= 0 && data.deliveryFee <= 100000
+        && (!('deliveryZones' in data) || (data.deliveryZones is string && data.deliveryZones.size() <= 160))
+        && data.description is string && data.description.size() >= 5 && data.description.size() <= 600
+        && (!('logoUrl' in data) || (data.logoUrl is string && data.logoUrl.size() <= 500 && (data.logoUrl == '' || isSafeStoredUrl(data.logoUrl))))
+        && data.status in ['ACTIVE', 'PAUSED']
+        && data.visibility is string && data.visibility == 'PUBLIC'
+        && data.createdAtLabel is string && data.createdAtLabel.size() >= 1 && data.createdAtLabel.size() <= 64
+        && data.createdAt is timestamp
+        && data.updatedAt is timestamp;
+    }
+
+    function isValidBusinessSettings(data, userId, settingId) {
+      return data.keys().hasAll([
+          'id', 'userId', 'payoutOperator', 'payoutAccountPhone', 'autoAcceptBookings', 'createdAt', 'updatedAt'
+        ])
+        && data.keys().hasOnly([
+          'id', 'userId', 'payoutOperator', 'payoutAccountPhone', 'businessRegNumber',
+          'emergencyContact', 'autoAcceptBookings', 'updatedAtLabel', 'createdAt', 'updatedAt'
+        ])
+        && data.id is string && data.id == settingId && data.id in ['professional', 'store']
+        && data.userId is string && data.userId == userId && isValidId(data.userId)
+        && data.payoutOperator in ['AIRTEL', 'MOOV', 'GHETTOPAY', 'BANK']
+        && data.payoutAccountPhone is string && data.payoutAccountPhone.size() <= 40
+        && (!('businessRegNumber' in data) || (data.businessRegNumber is string && data.businessRegNumber.size() <= 64))
+        && (!('emergencyContact' in data) || (data.emergencyContact is string && data.emergencyContact.size() <= 80))
+        && data.autoAcceptBookings is bool
+        && (!('updatedAtLabel' in data) || (data.updatedAtLabel is string && data.updatedAtLabel.size() <= 64))
+        && data.createdAt is timestamp
+        && data.updatedAt is timestamp;
+    }
+
+    function isValidPublicProfile(data, userId) {
+      return data.keys().hasAll([
+          'uid', 'displayName', 'ecoPoints', 'contributionsCount',
+          'isDiscoverable', 'visibility', 'createdAt', 'updatedAt'
+        ])
+        && data.keys().hasOnly([
+          'uid', 'displayName', 'role', 'bio', 'homeCity', 'favoritePark',
+          'avatarUrl', 'ecoPoints', 'contributionsCount', 'isDiscoverable',
+          'visibility', 'createdAt', 'updatedAt'
+        ])
+        && data.uid is string && data.uid == userId && isValidId(data.uid)
+        && data.displayName is string && data.displayName.size() >= 1 && data.displayName.size() <= 100
+        && (!('role' in data) || (data.role is string && data.role.size() <= 80))
+        && (!('bio' in data) || (data.bio is string && data.bio.size() <= 400))
+        && (!('homeCity' in data) || (data.homeCity is string && data.homeCity.size() <= 80))
+        && (!('favoritePark' in data) || (data.favoritePark is string && data.favoritePark.size() <= 100))
+        && (!('avatarUrl' in data) || (data.avatarUrl is string && data.avatarUrl.size() <= 1000 && (data.avatarUrl == '' || isSafeStoredUrl(data.avatarUrl))))
+        && data.ecoPoints is number && data.ecoPoints >= 0 && data.ecoPoints <= 1000000
+        && data.contributionsCount is int && data.contributionsCount >= 0 && data.contributionsCount <= 100000
+        && data.isDiscoverable is bool
+        && data.visibility is string && data.visibility == 'PUBLIC'
+        && data.createdAt is timestamp
+        && data.updatedAt is timestamp;
+    }
+
+    function isValidSiteContribution(data, contributionId) {
+      return data.keys().hasAll([
+          'id', 'userId', 'authorName', 'parkId', 'parkName',
+          'contributionType', 'title', 'description',
+          'visibility', 'createdAtLabel', 'createdAt'
+        ])
+        && data.keys().hasOnly([
+          'id', 'userId', 'authorName', 'authorAvatar',
+          'parkId', 'parkName', 'zoneLabel', 'contributionType',
+          'title', 'description', 'photoUrl', 'storagePath',
+          'visibility', 'createdAtLabel', 'createdAt'
+        ])
+        && data.id is string && data.id == contributionId && isValidId(data.id)
+        && data.userId is string && isValidId(data.userId)
+        && data.authorName is string && data.authorName.size() >= 1 && data.authorName.size() <= 80
+        && (!('authorAvatar' in data) || (data.authorAvatar is string && data.authorAvatar.size() <= 1000 && (data.authorAvatar == '' || isSafeStoredUrl(data.authorAvatar))))
+        && data.parkId is string && isValidId(data.parkId)
+        && data.parkName is string && data.parkName.size() >= 2 && data.parkName.size() <= 120
+        && (!('zoneLabel' in data) || (data.zoneLabel is string && data.zoneLabel.size() <= 120))
+        && data.contributionType in ['PHOTO', 'OBSERVATION', 'TRAIL_TIP', 'CAMP_INFO']
+        && data.title is string && data.title.size() >= 2 && data.title.size() <= 120
+        && data.description is string && data.description.size() >= 2 && data.description.size() <= 800
+        && (!('photoUrl' in data) || (data.photoUrl is string && data.photoUrl.size() <= 1000 && isSafeStoredUrl(data.photoUrl)))
+        && (!('storagePath' in data) || (data.storagePath is string && data.storagePath.size() <= 300 && data.storagePath.matches('^site-contributions/' + data.userId + '/[a-zA-Z0-9_.\\-]+$') && !data.storagePath.matches('.*\\.\\..*')))
+        && data.visibility is string && data.visibility == 'PUBLIC'
+        && data.createdAtLabel is string && data.createdAtLabel.size() >= 1 && data.createdAtLabel.size() <= 64
+        && data.createdAt is timestamp;
+    }
+
+    function isValidDirectChat(data, chatId) {
+      return data.keys().hasAll([
+          'id', 'participantUids', 'participantAId', 'participantBId',
+          'participantAName', 'participantBName',
+          'lastMessageText', 'lastMessageSenderId', 'lastMessageAtLabel',
+          'createdAt', 'updatedAt'
+        ])
+        && data.keys().hasOnly([
+          'id', 'participantUids', 'participantAId', 'participantBId',
+          'participantAName', 'participantBName', 'participantAAvatar', 'participantBAvatar',
+          'lastMessageText', 'lastMessageSenderId', 'lastMessageAtLabel',
+          'createdAt', 'updatedAt'
+        ])
+        && data.id is string && data.id == chatId && isValidId(data.id)
+        && data.participantUids is list && data.participantUids.size() == 2
+        && isValidId(data.participantUids[0]) && isValidId(data.participantUids[1])
+        && data.participantUids[0] != data.participantUids[1]
+        && data.participantAId is string && data.participantAId == data.participantUids[0]
+        && data.participantBId is string && data.participantBId == data.participantUids[1]
+        && data.participantAName is string && data.participantAName.size() >= 1 && data.participantAName.size() <= 100
+        && data.participantBName is string && data.participantBName.size() >= 1 && data.participantBName.size() <= 100
+        && (!('participantAAvatar' in data) || (data.participantAAvatar is string && data.participantAAvatar.size() <= 1000 && (data.participantAAvatar == '' || isSafeStoredUrl(data.participantAAvatar))))
+        && (!('participantBAvatar' in data) || (data.participantBAvatar is string && data.participantBAvatar.size() <= 1000 && (data.participantBAvatar == '' || isSafeStoredUrl(data.participantBAvatar))))
+        && data.lastMessageText is string && data.lastMessageText.size() >= 1 && data.lastMessageText.size() <= 500
+        && data.lastMessageSenderId is string && data.lastMessageSenderId in data.participantUids
+        && data.lastMessageAtLabel is string && data.lastMessageAtLabel.size() >= 1 && data.lastMessageAtLabel.size() <= 64
+        && data.createdAt is timestamp
+        && data.updatedAt is timestamp;
+    }
+
+    function isValidDirectChatMessage(data, chatId, messageId) {
+      return data.keys().hasAll([
+          'id', 'chatId', 'senderId', 'senderName',
+          'participantUids', 'text', 'createdAtLabel', 'createdAt'
+        ])
+        && data.keys().hasOnly([
+          'id', 'chatId', 'senderId', 'senderName', 'senderAvatar',
+          'participantUids', 'text', 'photoUrl', 'storagePath',
+          'createdAtLabel', 'createdAt'
+        ])
+        && data.id is string && data.id == messageId && isValidId(data.id)
+        && data.chatId is string && data.chatId == chatId && isValidId(data.chatId)
+        && data.senderId is string && isValidId(data.senderId)
+        && data.senderName is string && data.senderName.size() >= 1 && data.senderName.size() <= 80
+        && (!('senderAvatar' in data) || (data.senderAvatar is string && data.senderAvatar.size() <= 1000 && (data.senderAvatar == '' || isSafeStoredUrl(data.senderAvatar))))
+        && data.participantUids is list && data.participantUids.size() == 2
+        && data.senderId in data.participantUids
+        && data.text is string && data.text.size() <= 1000
+        && (data.text.size() >= 1 || 'photoUrl' in data)
+        && (!('photoUrl' in data) || (data.photoUrl is string && data.photoUrl.size() <= 1000 && isSafeStoredUrl(data.photoUrl)))
+        && (!('storagePath' in data) || (data.storagePath is string && data.storagePath.size() <= 300 && data.storagePath.matches('^direct-chat-media/' + chatId + '/' + data.senderId + '/[a-zA-Z0-9_.\\-]+$') && !data.storagePath.matches('.*\\.\\..*')))
         && data.createdAtLabel is string && data.createdAtLabel.size() >= 1 && data.createdAtLabel.size() <= 64
         && data.createdAt is timestamp;
     }
@@ -206,8 +651,10 @@ service cloud.firestore {
         && (
           // Action: Update activity stats, preferences & eco-challenge progress
           incoming().diff(existing()).affectedKeys().hasOnly([
-            'name', 'role', 'phone', 'avatar', 'totalKm', 'totalAscent',
-            'stepsCount', 'subscription', 'favoritePhotoIds', 'topThreePhotoIds',
+            'name', 'role', 'phone', 'avatar',
+            'bio', 'homeCity', 'favoritePark', 'publicDiscoverable',
+            'totalKm', 'totalAscent', 'stepsCount', 'subscription',
+            'favoritePhotoIds', 'topThreePhotoIds',
             'ecoPoints', 'zeroWasteExpeditionsCount', 'unlockedBadgeIds', 'updatedAt'
           ])
         );
@@ -245,6 +692,49 @@ service cloud.firestore {
         allow delete: if false;
       }
 
+      // Subcollection: Unified Marketplace Orders (Server-Verified Checkout + Terminal Refund Lock)
+      match /orders/{orderId} {
+        allow get: if isValidId(userId) && isValidId(orderId) && (isOwner(userId) || isAdmin()) && userExists(userId);
+        allow list: if isValidId(userId) && (isOwner(userId) || isAdmin()) && existing().userId == userId;
+
+        allow create: if isValidId(userId) && isValidId(orderId)
+          && isOwner(userId)
+          && isValidMarketplaceOrder(incoming(), userId, orderId)
+          && incoming().paymentStatus in ['CONFIRMED', 'PENDING']
+          && incoming().createdAt == request.time
+          && incoming().updatedAt == request.time
+          && userExists(userId);
+
+        allow update: if isValidId(userId) && isValidId(orderId)
+          && (isOwner(userId) || isAdmin())
+          && isValidMarketplaceOrder(incoming(), userId, orderId)
+          && userExists(userId)
+          && existing().paymentStatus != 'REFUNDED'
+          && incoming().id == existing().id
+          && incoming().userId == existing().userId
+          && incoming().refNumber == existing().refNumber
+          && incoming().idempotencyKey == existing().idempotencyKey
+          && incoming().itemsSubtotal == existing().itemsSubtotal
+          && incoming().deliveryFee == existing().deliveryFee
+          && incoming().depositTotal == existing().depositTotal
+          && incoming().platformCommission == existing().platformCommission
+          && incoming().vendorNetAmount == existing().vendorNetAmount
+          && incoming().grandTotalCharged == existing().grandTotalCharged
+          && incoming().paymentMethod == existing().paymentMethod
+          && incoming().receiptHash == existing().receiptHash
+          && incoming().createdAt == existing().createdAt
+          && incoming().updatedAt == request.time
+          && incoming().diff(existing()).affectedKeys().hasOnly([
+            'paymentStatus', 'fulfillmentStatus', 'refundReason', 'refundedAtLabel', 'updatedAt'
+          ])
+          && (
+            (existing().paymentStatus == 'PENDING' && incoming().paymentStatus in ['PENDING', 'CONFIRMED', 'REFUNDED']) ||
+            (existing().paymentStatus == 'CONFIRMED' && incoming().paymentStatus in ['CONFIRMED', 'REFUNDED'])
+          );
+
+        allow delete: if false;
+      }
+
       // Subcollection: User-submitted trail safety incidents
       match /incidents/{incidentId} {
         allow get: if isValidId(userId) && isValidId(incidentId) && isOwner(userId) && userExists(userId);
@@ -274,6 +764,89 @@ service cloud.firestore {
         allow update: if false;
         allow delete: if isValidId(userId) && isValidId(challengeId) && isOwner(userId);
       }
+
+      // Subcollection: Carnet Eco-Log (User wildlife & flora observations)
+      match /eco_logs/{logId} {
+        allow get: if isValidId(userId) && isValidId(logId) && isOwner(userId) && userExists(userId);
+        allow list: if isValidId(userId) && isOwner(userId) && existing().userId == request.auth.uid;
+
+        allow create: if isValidId(userId) && isValidId(logId)
+          && isOwner(userId)
+          && isValidEcoLog(incoming(), userId, logId)
+          && incoming().createdAt == request.time
+          && incoming().updatedAt == request.time
+          && userExists(userId);
+
+        allow update: if isValidId(userId) && isValidId(logId)
+          && isOwner(userId)
+          && isValidEcoLog(incoming(), userId, logId)
+          && userExists(userId)
+          && incoming().id == existing().id
+          && incoming().userId == existing().userId
+          && incoming().createdAt == existing().createdAt
+          && incoming().updatedAt == request.time
+          && incoming().diff(existing()).affectedKeys().hasOnly([
+            'speciesName', 'category', 'parkName', 'observedAt', 'notes', 'weatherOrContext', 'updatedAt'
+          ]);
+
+        allow delete: if isValidId(userId) && isValidId(logId) && isOwner(userId);
+      }
+
+      // Subcollection: Trusted Google Contacts for expedition & safety sharing
+      match /trusted_contacts/{contactId} {
+        allow get: if isValidId(userId) && isValidId(contactId) && isOwner(userId) && userExists(userId);
+        allow list: if isValidId(userId) && isOwner(userId) && existing().userId == request.auth.uid;
+
+        allow create: if isValidId(userId) && isValidId(contactId)
+          && isOwner(userId)
+          && isValidTrustedContact(incoming(), userId, contactId)
+          && incoming().createdAt == request.time
+          && incoming().updatedAt == request.time
+          && userExists(userId);
+
+        allow update: if isValidId(userId) && isValidId(contactId)
+          && isOwner(userId)
+          && isValidTrustedContact(incoming(), userId, contactId)
+          && userExists(userId)
+          && incoming().id == existing().id
+          && incoming().userId == existing().userId
+          && incoming().resourceName == existing().resourceName
+          && incoming().createdAt == existing().createdAt
+          && incoming().updatedAt == request.time
+          && incoming().diff(existing()).affectedKeys().hasOnly([
+            'displayName', 'phoneNumber', 'email', 'photoUrl', 'relationTag', 'shareSafetyAlerts', 'shareExpeditionPlans', 'updatedAt'
+          ]);
+
+        allow delete: if isValidId(userId) && isValidId(contactId) && isOwner(userId);
+      }
+
+      // Subcollection: Private Business & Settlement Settings (Pro & Store Mobile Money info isolated from public directory)
+      match /business_settings/{settingId} {
+        allow get: if isValidId(userId) && settingId in ['professional', 'store'] && isOwner(userId) && userExists(userId);
+        allow list: if isValidId(userId) && isOwner(userId) && existing().userId == request.auth.uid;
+
+        allow create: if isValidId(userId) && settingId in ['professional', 'store']
+          && isOwner(userId)
+          && isValidBusinessSettings(incoming(), userId, settingId)
+          && incoming().createdAt == request.time
+          && incoming().updatedAt == request.time
+          && userExists(userId);
+
+        allow update: if isValidId(userId) && settingId in ['professional', 'store']
+          && isOwner(userId)
+          && isValidBusinessSettings(incoming(), userId, settingId)
+          && userExists(userId)
+          && incoming().id == existing().id
+          && incoming().userId == existing().userId
+          && incoming().createdAt == existing().createdAt
+          && incoming().updatedAt == request.time
+          && incoming().diff(existing()).affectedKeys().hasOnly([
+            'payoutOperator', 'payoutAccountPhone', 'businessRegNumber',
+            'emergencyContact', 'autoAcceptBookings', 'updatedAtLabel', 'updatedAt'
+          ]);
+
+        allow delete: if isValidId(userId) && settingId in ['professional', 'store'] && isOwner(userId);
+      }
     }
 
     // Collection: Community Expedition Reviews (zero PII, authenticated public read)
@@ -289,6 +862,262 @@ service cloud.firestore {
 
       allow update: if false;
       allow delete: if isValidId(reviewId) && isSignedIn() && existing().userId == request.auth.uid;
+    }
+
+    // Collection: Community Activities Feed (zero PII, authenticated public read)
+    match /community_activities/{activityId} {
+      allow get: if isValidId(activityId) && isSignedIn() && (existing().visibility == 'PUBLIC' || existing().userId == request.auth.uid);
+      allow list: if isSignedIn() && (existing().visibility == 'PUBLIC' || existing().userId == request.auth.uid);
+
+      allow create: if isValidId(activityId)
+        && isSignedIn()
+        && isValidCommunityActivity(incoming(), activityId)
+        && incoming().createdAt == request.time
+        && userExists(request.auth.uid);
+
+      allow update: if false;
+      allow delete: if isValidId(activityId) && isSignedIn() && existing().userId == request.auth.uid;
+
+      match /comments/{commentId} {
+        allow get: if isValidId(activityId) && isValidId(commentId) && isSignedIn() && activityExists(activityId) && (existing().visibility == 'PUBLIC' || existing().userId == request.auth.uid);
+        allow list: if isValidId(activityId) && isSignedIn() && (existing().visibility == 'PUBLIC' || existing().userId == request.auth.uid);
+
+        allow create: if isValidId(activityId)
+          && isValidId(commentId)
+          && isSignedIn()
+          && isValidActivityComment(incoming(), activityId, commentId)
+          && incoming().createdAt == request.time
+          && userExists(request.auth.uid)
+          && activityExists(activityId);
+
+        allow update: if false;
+        allow delete: if isValidId(activityId) && isValidId(commentId) && isSignedIn() && existing().userId == request.auth.uid;
+      }
+
+      match /likes/{likeUserId} {
+        allow get: if isValidId(activityId) && isValidId(likeUserId) && isSignedIn() && activityExists(activityId) && (existing().visibility == 'PUBLIC' || existing().userId == request.auth.uid);
+        allow list: if isValidId(activityId) && isSignedIn() && (existing().visibility == 'PUBLIC' || existing().userId == request.auth.uid);
+
+        allow create: if isValidId(activityId)
+          && isValidId(likeUserId)
+          && isSignedIn()
+          && isValidActivityLike(incoming(), activityId, likeUserId)
+          && incoming().createdAt == request.time
+          && userExists(request.auth.uid)
+          && activityExists(activityId);
+
+        allow update: if false;
+        allow delete: if isValidId(activityId) && isValidId(likeUserId) && isSignedIn() && request.auth.uid == likeUserId && existing().userId == request.auth.uid;
+      }
+    }
+
+    // Collection: Community Real-Time Chat Messages (zero PII, authenticated public read)
+    match /community_chat_messages/{messageId} {
+      allow get: if isValidId(messageId) && isSignedIn() && (existing().visibility == 'PUBLIC' || existing().userId == request.auth.uid);
+      allow list: if isSignedIn() && (existing().visibility == 'PUBLIC' || existing().userId == request.auth.uid);
+
+      allow create: if isValidId(messageId)
+        && isSignedIn()
+        && isValidChatMessage(incoming(), messageId)
+        && incoming().createdAt == request.time
+        && userExists(request.auth.uid);
+
+      allow update: if false;
+      allow delete: if isValidId(messageId) && isSignedIn() && existing().userId == request.auth.uid;
+    }
+
+    // Collection: Vendor & Provider Marketplace Listings (zero PII, authenticated public read)
+    match /vendor_listings/{listingId} {
+      allow get: if isValidId(listingId) && isSignedIn() && (existing().visibility == 'PUBLIC' || existing().ownerUserId == request.auth.uid || isAdmin());
+      allow list: if isSignedIn() && (existing().visibility == 'PUBLIC' || existing().ownerUserId == request.auth.uid || isAdmin());
+
+      allow create: if isValidId(listingId)
+        && isSignedIn()
+        && isValidVendorListing(incoming(), listingId)
+        && incoming().ownerUserId == request.auth.uid
+        && incoming().createdAt == request.time
+        && incoming().updatedAt == request.time
+        && userExists(request.auth.uid);
+
+      allow update: if isValidId(listingId)
+        && isSignedIn()
+        && (existing().ownerUserId == request.auth.uid || isAdmin())
+        && isValidVendorListing(incoming(), listingId)
+        && incoming().id == existing().id
+        && incoming().ownerUserId == existing().ownerUserId
+        && incoming().createdAt == existing().createdAt
+        && incoming().updatedAt == request.time
+        && incoming().diff(existing()).affectedKeys().hasOnly([
+          'title', 'category', 'productCategory', 'rentalCategory',
+          'storeId', 'storeName', 'specialtyTag', 'deliveryAvailable',
+          'location', 'locationEnabled', 'lat', 'lng', 'price', 'depositAmount', 'stockOrCapacity',
+          'description', 'status', 'updatedAt'
+        ]);
+
+      allow delete: if isValidId(listingId) && isSignedIn() && (existing().ownerUserId == request.auth.uid || isAdmin());
+    }
+
+    // Collection: Certified Field Professionals (Guides ANPN, Ornithologues, Botanistes, Pisteurs, etc. — zero PII)
+    match /pro_profiles/{profileId} {
+      allow get: if isValidId(profileId) && isSignedIn() && (existing().visibility == 'PUBLIC' || existing().ownerUserId == request.auth.uid || isAdmin());
+      allow list: if isSignedIn() && (existing().visibility == 'PUBLIC' || existing().ownerUserId == request.auth.uid || isAdmin());
+
+      allow create: if isValidId(profileId)
+        && isSignedIn()
+        && isValidProfessionalProfile(incoming(), profileId)
+        && incoming().ownerUserId == request.auth.uid
+        && incoming().createdAt == request.time
+        && incoming().updatedAt == request.time
+        && userExists(request.auth.uid);
+
+      allow update: if isValidId(profileId)
+        && isSignedIn()
+        && (existing().ownerUserId == request.auth.uid || isAdmin())
+        && isValidProfessionalProfile(incoming(), profileId)
+        && incoming().id == existing().id
+        && incoming().ownerUserId == existing().ownerUserId
+        && incoming().createdAt == existing().createdAt
+        && incoming().updatedAt == request.time
+        && incoming().diff(existing()).affectedKeys().hasOnly([
+          'displayName', 'specialty', 'customSpecialty', 'title', 'anpnLicense',
+          'certifications', 'parks', 'languages', 'expertiseTags',
+          'dayRate', 'availability', 'availabilityNote', 'bio', 'photoUrl',
+          'status', 'updatedAt'
+        ]);
+
+      allow delete: if isValidId(profileId) && isSignedIn() && (existing().ownerUserId == request.auth.uid || isAdmin());
+    }
+
+    // Collection: Outdoor Stores & Rental Partners (zero personal PII, public storefront directory)
+    match /store_profiles/{storeId} {
+      allow get: if isValidId(storeId) && isSignedIn() && (existing().visibility == 'PUBLIC' || existing().ownerUserId == request.auth.uid || isAdmin());
+      allow list: if isSignedIn() && (existing().visibility == 'PUBLIC' || existing().ownerUserId == request.auth.uid || isAdmin());
+
+      allow create: if isValidId(storeId)
+        && isSignedIn()
+        && isValidStoreProfile(incoming(), storeId)
+        && incoming().ownerUserId == request.auth.uid
+        && incoming().createdAt == request.time
+        && incoming().updatedAt == request.time
+        && userExists(request.auth.uid);
+
+      allow update: if isValidId(storeId)
+        && isSignedIn()
+        && (existing().ownerUserId == request.auth.uid || isAdmin())
+        && isValidStoreProfile(incoming(), storeId)
+        && incoming().id == existing().id
+        && incoming().ownerUserId == existing().ownerUserId
+        && incoming().createdAt == existing().createdAt
+        && incoming().updatedAt == request.time
+        && incoming().diff(existing()).affectedKeys().hasOnly([
+          'storeName', 'storeType', 'cityZone', 'pickupAddress', 'openingHours',
+          'deliveryAvailable', 'deliveryFee', 'deliveryZones', 'description',
+          'logoUrl', 'status', 'updatedAt'
+        ]);
+
+      allow delete: if isValidId(storeId) && isSignedIn() && (existing().ownerUserId == request.auth.uid || isAdmin());
+    }
+
+    // Collection: Public Explorer Directory (Zero PII — used for profiles & private chat discovery)
+    match /public_profiles/{userId} {
+      allow get: if isValidId(userId) && isSignedIn() && (existing().visibility == 'PUBLIC' || userId == request.auth.uid);
+      allow list: if isSignedIn() && (existing().visibility == 'PUBLIC' || existing().uid == request.auth.uid);
+
+      allow create: if isValidId(userId)
+        && isOwner(userId)
+        && isValidPublicProfile(incoming(), userId)
+        && incoming().createdAt == request.time
+        && incoming().updatedAt == request.time
+        && userExists(userId);
+
+      allow update: if isValidId(userId)
+        && isOwner(userId)
+        && isValidPublicProfile(incoming(), userId)
+        && userExists(userId)
+        && incoming().uid == existing().uid
+        && incoming().createdAt == existing().createdAt
+        && incoming().updatedAt == request.time
+        && incoming().diff(existing()).affectedKeys().hasOnly([
+          'displayName', 'role', 'bio', 'homeCity', 'favoritePark',
+          'avatarUrl', 'ecoPoints', 'contributionsCount', 'isDiscoverable', 'updatedAt'
+        ]);
+
+      allow delete: if isValidId(userId) && isOwner(userId);
+    }
+
+    // Collection: Gabon Site Contributions & Field Photos (Zero PII, authenticated public read)
+    match /site_contributions/{contributionId} {
+      allow get: if isValidId(contributionId) && isSignedIn() && (existing().visibility == 'PUBLIC' || existing().userId == request.auth.uid);
+      allow list: if isSignedIn() && (existing().visibility == 'PUBLIC' || existing().userId == request.auth.uid);
+
+      allow create: if isValidId(contributionId)
+        && isSignedIn()
+        && isValidSiteContribution(incoming(), contributionId)
+        && incoming().userId == request.auth.uid
+        && incoming().createdAt == request.time
+        && userExists(request.auth.uid);
+
+      allow update: if false;
+      allow delete: if isValidId(contributionId) && isSignedIn() && existing().userId == request.auth.uid;
+    }
+
+    // Collection: 1-to-1 Private Chats (Strict Participant Containment)
+    match /direct_chats/{chatId} {
+      allow get: if isValidId(chatId) && isSignedIn() && request.auth.uid in existing().participantUids;
+      allow list: if isSignedIn() && request.auth.uid in existing().participantUids;
+
+      allow create: if isValidId(chatId)
+        && isSignedIn()
+        && isValidDirectChat(incoming(), chatId)
+        && request.auth.uid in incoming().participantUids
+        && incoming().lastMessageSenderId == request.auth.uid
+        && incoming().createdAt == request.time
+        && incoming().updatedAt == request.time
+        && userExists(request.auth.uid);
+
+      allow update: if isValidId(chatId)
+        && isSignedIn()
+        && request.auth.uid in existing().participantUids
+        && isValidDirectChat(incoming(), chatId)
+        && incoming().id == existing().id
+        && incoming().participantUids == existing().participantUids
+        && incoming().participantAId == existing().participantAId
+        && incoming().participantBId == existing().participantBId
+        && incoming().createdAt == existing().createdAt
+        && incoming().updatedAt == request.time
+        && incoming().lastMessageSenderId == request.auth.uid
+        && incoming().diff(existing()).affectedKeys().hasOnly([
+          'participantAName', 'participantBName', 'participantAAvatar', 'participantBAvatar',
+          'lastMessageText', 'lastMessageSenderId', 'lastMessageAtLabel', 'updatedAt'
+        ]);
+
+      allow delete: if false;
+
+      match /messages/{messageId} {
+        allow get: if isValidId(chatId)
+          && isValidId(messageId)
+          && isSignedIn()
+          && directChatExists(chatId)
+          && request.auth.uid in directChatParent(chatId).participantUids;
+
+        allow list: if isValidId(chatId)
+          && isSignedIn()
+          && request.auth.uid in existing().participantUids;
+
+        allow create: if isValidId(chatId)
+          && isValidId(messageId)
+          && isSignedIn()
+          && isValidDirectChatMessage(incoming(), chatId, messageId)
+          && incoming().senderId == request.auth.uid
+          && incoming().createdAt == request.time
+          && userExists(request.auth.uid)
+          && directChatExistsAfter(chatId)
+          && request.auth.uid in directChatParentAfter(chatId).participantUids
+          && incoming().participantUids == directChatParentAfter(chatId).participantUids;
+
+        allow update: if false;
+        allow delete: if isValidId(chatId) && isValidId(messageId) && isSignedIn() && existing().senderId == request.auth.uid;
+      }
     }
   }
 }

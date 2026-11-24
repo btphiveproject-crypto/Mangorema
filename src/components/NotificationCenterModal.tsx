@@ -22,6 +22,7 @@ import {
   Calendar,
   Sparkles,
   Smartphone,
+  Eye,
 } from 'lucide-react';
 import {
   getNotificationPermission,
@@ -258,6 +259,10 @@ export const NotificationCenterModal: React.FC<NotificationCenterModalProps> = (
                             ) : n.targetType === 'ECO_CHALLENGE' ? (
                               <span className="text-[9px] bg-emerald-500/15 dark:bg-emerald-500/20 text-emerald-800 dark:text-emerald-300 border border-emerald-500/35 dark:border-emerald-500/30 px-2 py-0.5 rounded-md font-bold uppercase flex items-center gap-1">
                                 <Sparkles className="w-2.5 h-2.5" /> Défi Éco Hebdo
+                              </span>
+                            ) : n.targetType === 'WILDLIFE_ALERT' ? (
+                              <span className="text-[9px] bg-amber-500/15 dark:bg-amber-500/20 text-amber-800 dark:text-amber-300 border border-amber-500/35 dark:border-amber-500/30 px-2 py-0.5 rounded-md font-bold uppercase flex items-center gap-1">
+                                <Eye className="w-2.5 h-2.5" /> Faune &amp; Flore
                               </span>
                             ) : (
                               <span className="text-[9px] bg-emerald-500/15 dark:bg-emerald-500/20 text-emerald-800 dark:text-emerald-300 border border-emerald-500/35 dark:border-emerald-500/30 px-2 py-0.5 rounded-md font-bold uppercase flex items-center gap-1">

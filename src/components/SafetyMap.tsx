@@ -153,8 +153,8 @@ export const SafetyMap: React.FC<SafetyMapProps> = ({ incidents, onAddIncident }
 
         {/* Floating Header Badge */}
         <div className="absolute top-3 left-3 z-[400]">
-          <div className="bg-white/90 dark:bg-[#121614]/90 backdrop-blur-md px-3 py-1.5 rounded-xl border border-stone-200 dark:border-white/10 text-xs font-semibold flex items-center gap-2 shadow-lg">
-            <span className="w-2 h-2 rounded-full bg-red-500 animate-pulse" />
+          <div className="bg-white/95 dark:bg-[#121614]/95 backdrop-blur-md px-3 py-1.5 rounded-xl border border-stone-200 dark:border-white/10 text-xs font-semibold flex items-center gap-2 shadow-sm">
+            <span className="w-2 h-2 rounded-full bg-red-600 dark:bg-red-500" />
             <span className="text-red-700 dark:text-red-400 font-bold">Réseau Sentiers & Vigilance ANPN</span>
           </div>
         </div>

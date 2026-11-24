@@ -1,12 +1,14 @@
 import React, { useState, useEffect } from 'react';
-import { X, AlertOctagon, PhoneCall, MessageSquare, Copy, Check, ShieldAlert, Radio } from 'lucide-react';
+import { X, AlertOctagon, PhoneCall, MessageSquare, Copy, Check, ShieldAlert, Radio, Users } from 'lucide-react';
+import { TrustedContact } from '../types';
 
 interface SOSModalProps {
   isOpen: boolean;
   onClose: () => void;
+  trustedContacts?: TrustedContact[];
 }
 
-export const SOSModal: React.FC<SOSModalProps> = ({ isOpen, onClose }) => {
+export const SOSModal: React.FC<SOSModalProps> = ({ isOpen, onClose, trustedContacts = [] }) => {
   const [coords, setCoords] = useState<{ lat: number; lng: number }>({ lat: 0.5833, lng: 9.3500 });
   const [isLocating, setIsLocating] = useState(true);
   const [copied, setCopied] = useState(false);
@@ -115,6 +117,40 @@ export const SOSModal: React.FC<SOSModalProps> = ({ isOpen, onClose }) => {
             <PhoneCall className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
             <span>Appel Vocal Direct Secours ANPN (1404)</span>
           </a>
+
+          {trustedContacts.filter((c) => c.shareSafetyAlerts && (c.phoneNumber || c.email)).length > 0 && (
+            <div className="bg-white dark:bg-slate-900/90 border border-red-200 dark:border-red-900/40 rounded-2xl p-2.5 text-left space-y-1.5">
+              <span className="text-[10px] font-bold text-red-700 dark:text-red-400 flex items-center gap-1">
+                <Users className="w-3 h-3" />
+                Prévenir aussi mes Proches Google synchronisés :
+              </span>
+              <div className="flex flex-wrap gap-1.5">
+                {trustedContacts
+                  .filter((c) => c.shareSafetyAlerts && (c.phoneNumber || c.email))
+                  .slice(0, 3)
+                  .map((contact) => {
+                    const sosMsg = `ALERTE SECURITE MANGOREMA. Position GPS: ${coords.lat.toFixed(5)}, ${coords.lng.toFixed(5)} (https://maps.google.com/?q=${coords.lat.toFixed(5)},${coords.lng.toFixed(5)}). Merci de contacter le 1404 si injoignable.`;
+                    const href = contact.phoneNumber
+                      ? `sms:${contact.phoneNumber.replace(/[^+\d]/g, '')}?body=${encodeURIComponent(sosMsg)}`
+                      : `mailto:${encodeURIComponent(contact.email || '')}?subject=${encodeURIComponent(
+                          'ALERTE SECURITE MANGOREMA'
+                        )}&body=${encodeURIComponent(sosMsg)}`;
+
+                    return (
+                      <a
+                        key={contact.id}
+                        href={href}
+                        onClick={handleSimulateRadioBeacon}
+                        className="min-h-[44px] px-2.5 py-1.5 rounded-xl bg-red-50 dark:bg-red-950/60 border border-red-300 dark:border-red-800/60 text-red-800 dark:text-red-200 font-bold text-[11px] flex items-center gap-1 hover:bg-red-100 dark:hover:bg-red-900/60 transition"
+                      >
+                        <MessageSquare className="w-3 h-3 shrink-0" />
+                        <span>{contact.displayName}</span>
+                      </a>
+                    );
+                  })}
+              </div>
+            </div>
+          )}
 
           <button
             onClick={onClose}

@@ -21,6 +21,7 @@ import {
   CheckCircle2,
 } from 'lucide-react';
 import { CategoryIcon } from './CategoryIcon';
+import { sanitizeImageUrl, sanitizeStoredMediaUrl } from '../utils/urlSecurity';
 
 interface ExpeditionReviewsSectionProps {
   events: ExpeditionEvent[];
@@ -104,12 +105,23 @@ export const ExpeditionReviewsSection: React.FC<ExpeditionReviewsSectionProps> =
       return;
     }
 
-    if (photoUrl && photoUrl.length > 500) {
-      setFeedbackByEvent((prev) => ({
-        ...prev,
-        [eventId]: { type: 'err', text: 'Le lien photo ne doit pas dépasser 500 caractères.' },
-      }));
-      return;
+    let safePhotoUrl: string | undefined;
+    if (photoUrl) {
+      if (photoUrl.length > 500) {
+        setFeedbackByEvent((prev) => ({
+          ...prev,
+          [eventId]: { type: 'err', text: 'Le lien photo ne doit pas dépasser 500 caractères.' },
+        }));
+        return;
+      }
+      safePhotoUrl = sanitizeStoredMediaUrl(photoUrl);
+      if (!safePhotoUrl) {
+        setFeedbackByEvent((prev) => ({
+          ...prev,
+          [eventId]: { type: 'err', text: 'Veuillez saisir un lien image https:// valide.' },
+        }));
+        return;
+      }
     }
 
     setSubmittingEventId(eventId);
@@ -124,7 +136,7 @@ export const ExpeditionReviewsSection: React.FC<ExpeditionReviewsSectionProps> =
         eventId,
         rating,
         comment,
-        photoUrl: photoUrl || undefined,
+        photoUrl: safePhotoUrl,
       });
 
       setCommentsByEvent((prev) => ({ ...prev, [eventId]: '' }));
@@ -245,12 +257,14 @@ export const ExpeditionReviewsSection: React.FC<ExpeditionReviewsSectionProps> =
               >
                 <div className="flex items-center gap-3 min-w-0">
                   <div className="w-12 h-12 rounded-xl overflow-hidden border border-amber-500/35 bg-stone-100 dark:bg-slate-950 shrink-0">
-                    <img
-                      src={evt.image}
-                      alt={evt.title}
-                      referrerPolicy="no-referrer"
-                      className="w-full h-full object-cover"
-                    />
+                    {sanitizeImageUrl(evt.image) && (
+                      <img
+                        src={sanitizeImageUrl(evt.image)}
+                        alt={evt.title}
+                        referrerPolicy="no-referrer"
+                        className="w-full h-full object-cover"
+                      />
+                    )}
                   </div>
                   <div className="min-w-0">
                     <span className="text-[10px] text-amber-700 dark:text-amber-400 font-bold block truncate">
@@ -290,25 +304,29 @@ export const ExpeditionReviewsSection: React.FC<ExpeditionReviewsSectionProps> =
                       Galerie Photos ({galleryItems.length})
                     </span>
                     <div className="flex gap-2 overflow-x-auto no-scrollbar pb-1">
-                      {galleryItems.map((item, idx) => (
-                        <button
-                          key={`${evt.id}-gal-${idx}`}
-                          type="button"
-                          onClick={() => setLightboxPhoto(item)}
-                          className="group relative w-28 h-20 rounded-xl overflow-hidden border border-stone-200 dark:border-white/10 hover:border-amber-500/60 dark:hover:border-amber-400/60 shrink-0 bg-stone-200 dark:bg-slate-950 transition"
-                        >
-                          <img
-                            src={item.url}
-                            alt={item.title}
-                            referrerPolicy="no-referrer"
-                            className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
-                          />
-                          <div className="absolute inset-0 bg-gradient-to-t from-black/75 via-transparent to-transparent" />
-                          <span className="absolute bottom-1 left-1.5 right-1.5 text-[9px] text-white font-semibold truncate text-left">
-                            {item.title}
-                          </span>
-                        </button>
-                      ))}
+                      {galleryItems.map((item, idx) => {
+                        const safeItemUrl = sanitizeImageUrl(item.url);
+                        if (!safeItemUrl) return null;
+                        return (
+                          <button
+                            key={`${evt.id}-gal-${idx}`}
+                            type="button"
+                            onClick={() => setLightboxPhoto({ ...item, url: safeItemUrl })}
+                            className="group relative w-28 h-20 rounded-xl overflow-hidden border border-stone-200 dark:border-white/10 hover:border-amber-500/60 dark:hover:border-amber-400/60 shrink-0 bg-stone-200 dark:bg-slate-950 transition"
+                          >
+                            <img
+                              src={safeItemUrl}
+                              alt={item.title}
+                              referrerPolicy="no-referrer"
+                              className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                            />
+                            <div className="absolute inset-0 bg-gradient-to-t from-black/75 via-transparent to-transparent" />
+                            <span className="absolute bottom-1 left-1.5 right-1.5 text-[9px] text-white font-semibold truncate text-left">
+                              {item.title}
+                            </span>
+                          </button>
+                        );
+                      })}
                     </div>
                   </div>
 
@@ -334,9 +352,9 @@ export const ExpeditionReviewsSection: React.FC<ExpeditionReviewsSectionProps> =
                             >
                               <div className="flex items-start justify-between gap-2">
                                 <div className="flex items-center gap-2 min-w-0">
-                                  {rev.authorAvatar ? (
+                                  {sanitizeImageUrl(rev.authorAvatar) ? (
                                     <img
-                                      src={rev.authorAvatar}
+                                      src={sanitizeImageUrl(rev.authorAvatar)}
                                       alt={rev.authorName}
                                       referrerPolicy="no-referrer"
                                       className="w-6 h-6 rounded-full object-cover border border-amber-500/40 shrink-0"
@@ -397,12 +415,12 @@ export const ExpeditionReviewsSection: React.FC<ExpeditionReviewsSectionProps> =
 
                               <p className="text-xs text-slate-700 dark:text-slate-200 leading-relaxed">{rev.comment}</p>
 
-                              {rev.photoUrl && (
+                              {sanitizeImageUrl(rev.photoUrl) && (
                                 <button
                                   type="button"
                                   onClick={() =>
                                     setLightboxPhoto({
-                                      url: rev.photoUrl!,
+                                      url: sanitizeImageUrl(rev.photoUrl),
                                       title: `Photo · ${rev.authorName}`,
                                       subtitle: rev.comment,
                                     })
@@ -410,7 +428,7 @@ export const ExpeditionReviewsSection: React.FC<ExpeditionReviewsSectionProps> =
                                   className="block w-24 h-16 rounded-lg overflow-hidden border border-stone-200 dark:border-white/10 hover:border-amber-500/60 dark:hover:border-amber-400/60 transition"
                                 >
                                   <img
-                                    src={rev.photoUrl}
+                                    src={sanitizeImageUrl(rev.photoUrl)}
                                     alt={`Souvenir de ${rev.authorName}`}
                                     referrerPolicy="no-referrer"
                                     className="w-full h-full object-cover"
@@ -553,7 +571,7 @@ export const ExpeditionReviewsSection: React.FC<ExpeditionReviewsSectionProps> =
           >
             <div className="relative aspect-[4/3] bg-stone-900 dark:bg-slate-950">
               <img
-                src={lightboxPhoto.url}
+                src={sanitizeImageUrl(lightboxPhoto.url)}
                 alt={lightboxPhoto.title}
                 referrerPolicy="no-referrer"
                 className="w-full h-full object-cover"

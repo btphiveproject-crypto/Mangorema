@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import confetti from 'canvas-confetti';
 import {
   Leaf,
@@ -19,6 +19,11 @@ import {
   ShieldCheck,
   AlertCircle,
   Recycle,
+  Camera,
+  SwitchCamera,
+  ImagePlus,
+  RotateCcw,
+  Maximize2,
 } from 'lucide-react';
 import {
   EcoChallengeDefinition,
@@ -29,12 +34,64 @@ import {
   ALL_VIRTUAL_ECO_BADGES,
   computeEcoProgress,
 } from '../data/ecoChallenges';
+import { uploadEcoChallengeProofPhoto } from '../firebase';
+import { sanitizeImageUrl } from '../utils/urlSecurity';
 
 interface AuthUserSummary {
   uid: string;
   email: string | null;
   displayName: string | null;
   photoURL: string | null;
+}
+
+const MAX_PHOTO_DIMENSION = 1280;
+const JPEG_COMPRESSION_QUALITY = 0.82;
+
+async function compressImageBlobToJpeg(source: Blob | File): Promise<Blob> {
+  if (typeof window === 'undefined' || typeof document === 'undefined') {
+    return source;
+  }
+
+  const objectUrl = URL.createObjectURL(source);
+  try {
+    const img = await new Promise<HTMLImageElement>((resolve, reject) => {
+      const el = new Image();
+      el.onload = () => resolve(el);
+      el.onerror = () => reject(new Error('Image illisible pour la compression.'));
+      el.src = objectUrl;
+    });
+
+    const width = img.naturalWidth || img.width;
+    const height = img.naturalHeight || img.height;
+    if (!width || !height) return source;
+
+    const scale = Math.min(1, MAX_PHOTO_DIMENSION / Math.max(width, height));
+    const targetW = Math.max(1, Math.round(width * scale));
+    const targetH = Math.max(1, Math.round(height * scale));
+
+    const canvas = document.createElement('canvas');
+    canvas.width = targetW;
+    canvas.height = targetH;
+    const ctx = canvas.getContext('2d');
+    if (!ctx) return source;
+
+    ctx.drawImage(img, 0, 0, targetW, targetH);
+
+    const compressed = await new Promise<Blob | null>((resolve) =>
+      canvas.toBlob((b) => resolve(b), 'image/jpeg', JPEG_COMPRESSION_QUALITY)
+    );
+    return compressed && compressed.size > 0 ? compressed : source;
+  } catch {
+    return source;
+  } finally {
+    URL.revokeObjectURL(objectUrl);
+  }
+}
+
+function formatPhotoSize(bytes: number): string {
+  if (bytes < 1024) return `${bytes} o`;
+  if (bytes < 1024 * 1024) return `${Math.round(bytes / 1024)} Ko`;
+  return `${(bytes / (1024 * 1024)).toFixed(1)} Mo`;
 }
 
 interface EcoChallengeValidationModalProps {
@@ -48,6 +105,8 @@ interface EcoChallengeValidationModalProps {
   onConfirmCompletion: (payload: {
     challenge: EcoChallengeDefinition;
     wasteNote?: string;
+    proofPhotoUrl?: string;
+    proofStoragePath?: string;
   }) => Promise<void>;
   onRemoveCompletion?: (challengeId: string) => Promise<void>;
 }
@@ -69,31 +128,249 @@ export const EcoChallengeValidationModal: React.FC<EcoChallengeValidationModalPr
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
 
+  // Camera & proof photo states
+  const [capturedBlob, setCapturedBlob] = useState<Blob | null>(null);
+  const [previewUrl, setPreviewUrl] = useState<string | null>(null);
+  const [isCameraActive, setIsCameraActive] = useState(false);
+  const [isStartingCamera, setIsStartingCamera] = useState(false);
+  const [cameraError, setCameraError] = useState<string | null>(null);
+  const [facingMode, setFacingMode] = useState<'environment' | 'user'>('environment');
+  const [uploadProgress, setUploadProgress] = useState<number | null>(null);
+  const [isProcessingPhoto, setIsProcessingPhoto] = useState(false);
+  const [expandedProofUrl, setExpandedProofUrl] = useState<string | null>(null);
+
+  const videoRef = useRef<HTMLVideoElement | null>(null);
+  const streamRef = useRef<MediaStream | null>(null);
+  const fileInputRef = useRef<HTMLInputElement | null>(null);
+
+  const stopCameraStream = useCallback(() => {
+    if (streamRef.current) {
+      streamRef.current.getTracks().forEach((track) => {
+        try {
+          track.stop();
+        } catch {
+          // Ignore track stop errors on already-ended streams
+        }
+      });
+      streamRef.current = null;
+    }
+    if (videoRef.current) {
+      videoRef.current.srcObject = null;
+    }
+    setIsCameraActive(false);
+    setIsStartingCamera(false);
+  }, []);
+
+  const clearCapturedPhoto = useCallback(() => {
+    setPreviewUrl((prev) => {
+      if (prev) URL.revokeObjectURL(prev);
+      return null;
+    });
+    setCapturedBlob(null);
+  }, []);
+
   useEffect(() => {
     if (isOpen) {
       setWasteBagReturned(false);
       setLeaveNoTracePledge(false);
       setWasteNote('');
       setErrorMsg(null);
+      setCameraError(null);
       setIsSubmitting(false);
+      setUploadProgress(null);
+      setExpandedProofUrl(null);
+      clearCapturedPhoto();
+    } else {
+      stopCameraStream();
+      clearCapturedPhoto();
+      setExpandedProofUrl(null);
     }
-  }, [isOpen, challenge?.challengeId]);
+  }, [isOpen, challenge?.challengeId, stopCameraStream, clearCapturedPhoto]);
+
+  // Attach active MediaStream once <video> mounts
+  useEffect(() => {
+    if (isCameraActive && videoRef.current && streamRef.current) {
+      videoRef.current.srcObject = streamRef.current;
+      videoRef.current.play().catch(() => {
+        // Autoplay fallback handled by muted + playsInline
+      });
+    }
+  }, [isCameraActive]);
+
+  // Always release hardware camera on unmount
+  useEffect(() => {
+    return () => {
+      stopCameraStream();
+    };
+  }, [stopCameraStream]);
+
+  const startCamera = async (requestedFacing: 'environment' | 'user' = facingMode) => {
+    setCameraError(null);
+    if (typeof navigator === 'undefined' || !navigator.mediaDevices?.getUserMedia) {
+      setCameraError(
+        'Votre navigateur ne permet pas le flux caméra direct. Utilisez le bouton « Caméra / Photo » ci-dessous.'
+      );
+      return;
+    }
+
+    stopCameraStream();
+    setIsStartingCamera(true);
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({
+        video: {
+          facingMode: { ideal: requestedFacing },
+          width: { ideal: 1280 },
+          height: { ideal: 960 },
+        },
+        audio: false,
+      });
+      streamRef.current = stream;
+      setFacingMode(requestedFacing);
+      setIsCameraActive(true);
+    } catch (err) {
+      const name = err instanceof DOMException ? err.name : '';
+      if (name === 'NotAllowedError' || name === 'PermissionDeniedError') {
+        setCameraError(
+          'Accès à la caméra refusé. Autorisez la caméra dans votre navigateur ou utilisez « Caméra / Photo ».'
+        );
+      } else if (name === 'NotFoundError' || name === 'DevicesNotFoundError') {
+        setCameraError(
+          'Aucune caméra détectée sur cet appareil. Vous pouvez importer une photo avec le bouton ci-dessous.'
+        );
+      } else {
+        setCameraError(
+          'Flux caméra indisponible dans ce contexte. Utilisez « Caméra / Photo » pour prendre ou choisir une image.'
+        );
+      }
+      stopCameraStream();
+    } finally {
+      setIsStartingCamera(false);
+    }
+  };
+
+  const handleToggleFacingCamera = () => {
+    const nextFacing = facingMode === 'environment' ? 'user' : 'environment';
+    startCamera(nextFacing);
+  };
+
+  const handleCapturePhoto = async () => {
+    const video = videoRef.current;
+    if (!video) return;
+
+    const rawW = video.videoWidth || 1280;
+    const rawH = video.videoHeight || 720;
+    if (!rawW || !rawH) {
+      setCameraError('La caméra démarre encore. Patientez une seconde avant de capturer.');
+      return;
+    }
+
+    setIsProcessingPhoto(true);
+    setCameraError(null);
+    try {
+      const scale = Math.min(1, MAX_PHOTO_DIMENSION / Math.max(rawW, rawH));
+      const targetW = Math.max(1, Math.round(rawW * scale));
+      const targetH = Math.max(1, Math.round(rawH * scale));
+
+      const canvas = document.createElement('canvas');
+      canvas.width = targetW;
+      canvas.height = targetH;
+      const ctx = canvas.getContext('2d');
+      if (!ctx) {
+        throw new Error('Canvas indisponible pour capturer la photo.');
+      }
+      ctx.drawImage(video, 0, 0, targetW, targetH);
+
+      const blob = await new Promise<Blob | null>((resolve) =>
+        canvas.toBlob((b) => resolve(b), 'image/jpeg', JPEG_COMPRESSION_QUALITY)
+      );
+      if (!blob || blob.size === 0) {
+        throw new Error('Impossible de capturer l’image.');
+      }
+
+      clearCapturedPhoto();
+      const nextUrl = URL.createObjectURL(blob);
+      setCapturedBlob(blob);
+      setPreviewUrl(nextUrl);
+      stopCameraStream();
+    } catch (err) {
+      setCameraError(
+        err instanceof Error ? err.message : 'Erreur lors de la capture photo.'
+      );
+    } finally {
+      setIsProcessingPhoto(false);
+    }
+  };
+
+  const handleFileInputChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    e.target.value = '';
+    if (!file) return;
+
+    if (!/^image\/(png|jpe?g|webp|gif)$/i.test(file.type)) {
+      setCameraError('Veuillez sélectionner un fichier image valide (JPG, PNG, WEBP).');
+      return;
+    }
+
+    setIsProcessingPhoto(true);
+    setCameraError(null);
+    stopCameraStream();
+    try {
+      const compressed = await compressImageBlobToJpeg(file);
+      if (compressed.size > 6 * 1024 * 1024) {
+        setCameraError('La photo reste trop lourde (> 6 Mo). Essayez une photo plus compacte.');
+        return;
+      }
+      clearCapturedPhoto();
+      const nextUrl = URL.createObjectURL(compressed);
+      setCapturedBlob(compressed);
+      setPreviewUrl(nextUrl);
+    } catch {
+      setCameraError('Impossible de traiter cette image.');
+    } finally {
+      setIsProcessingPhoto(false);
+    }
+  };
 
   if (!isOpen || !challenge) return null;
 
-  const canSubmit = wasteBagReturned && leaveNoTracePledge && Boolean(authUser) && !isSubmitting;
+  const canSubmit =
+    wasteBagReturned &&
+    leaveNoTracePledge &&
+    Boolean(authUser) &&
+    !isSubmitting &&
+    !isProcessingPhoto;
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!canSubmit) return;
+    if (!canSubmit || !authUser) return;
 
     setIsSubmitting(true);
     setErrorMsg(null);
+    setUploadProgress(null);
+
     try {
+      let proofPhotoUrl: string | undefined;
+      let proofStoragePath: string | undefined;
+
+      if (capturedBlob) {
+        setUploadProgress(5);
+        const uploaded = await uploadEcoChallengeProofPhoto(
+          authUser.uid,
+          challenge.challengeId,
+          capturedBlob,
+          (pct) => setUploadProgress(pct)
+        );
+        proofPhotoUrl = uploaded.downloadUrl;
+        proofStoragePath = uploaded.storagePath;
+      }
+
       await onConfirmCompletion({
         challenge,
         wasteNote: wasteNote.trim() || undefined,
+        proofPhotoUrl,
+        proofStoragePath,
       });
+
       confetti({
         particleCount: 55,
         spread: 65,
@@ -104,10 +381,11 @@ export const EcoChallengeValidationModal: React.FC<EcoChallengeValidationModalPr
       const msg =
         err instanceof Error
           ? err.message
-          : 'Impossible de synchroniser le défi avec Firestore.';
+          : 'Impossible de synchroniser le défi avec Firebase.';
       setErrorMsg(msg);
     } finally {
       setIsSubmitting(false);
+      setUploadProgress(null);
     }
   };
 
@@ -205,7 +483,7 @@ export const EcoChallengeValidationModal: React.FC<EcoChallengeValidationModalPr
                 Synchronisation Firebase requise
               </h4>
               <p className="text-xs text-slate-600 dark:text-slate-300 leading-relaxed">
-                Connectez votre compte Google pour valider ce défi Zéro Déchet et enregistrer votre badge virtuel dans votre profil cloud.
+                Connectez votre compte Google pour valider ce défi Zéro Déchet, joindre une preuve photo et enregistrer votre badge virtuel dans votre profil cloud.
               </p>
             </div>
             {onSignInGoogle && (
@@ -226,7 +504,7 @@ export const EcoChallengeValidationModal: React.FC<EcoChallengeValidationModalPr
           </div>
         ) : existingCompletion ? (
           <div className="space-y-3">
-            <div className="rounded-2xl bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-500/40 p-4 space-y-2">
+            <div className="rounded-2xl bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-500/40 p-4 space-y-3">
               <div className="flex items-center justify-between gap-2">
                 <span className="text-xs font-bold text-emerald-800 dark:text-emerald-300 flex items-center gap-1.5">
                   <CheckCircle2 className="w-4 h-4" />
@@ -243,6 +521,37 @@ export const EcoChallengeValidationModal: React.FC<EcoChallengeValidationModalPr
                 <p className="text-xs text-slate-600 dark:text-slate-300 italic border-t border-emerald-500/20 pt-2">
                   Note terrain : « {existingCompletion.wasteNote} »
                 </p>
+              )}
+
+              {sanitizeImageUrl(existingCompletion.proofPhotoUrl) && (
+                <div className="pt-2 border-t border-emerald-500/20 space-y-1.5">
+                  <div className="flex items-center justify-between text-[11px] font-semibold text-emerald-800 dark:text-emerald-300">
+                    <span className="flex items-center gap-1.5">
+                      <Camera className="w-3.5 h-3.5" />
+                      Preuve photo ramassage (Firebase Storage)
+                    </span>
+                    <button
+                      type="button"
+                      onClick={() => setExpandedProofUrl(sanitizeImageUrl(existingCompletion.proofPhotoUrl) || null)}
+                      className="text-emerald-700 dark:text-emerald-300 hover:underline flex items-center gap-1 font-bold"
+                    >
+                      <Maximize2 className="w-3 h-3" />
+                      <span>Agrandir</span>
+                    </button>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => setExpandedProofUrl(sanitizeImageUrl(existingCompletion.proofPhotoUrl) || null)}
+                    className="block w-full rounded-xl overflow-hidden border border-emerald-500/30 bg-black/20 group relative"
+                  >
+                    <img
+                      src={sanitizeImageUrl(existingCompletion.proofPhotoUrl)}
+                      alt={`Preuve ramassage ${existingCompletion.parkName}`}
+                      referrerPolicy="no-referrer"
+                      className="w-full h-44 object-cover group-hover:scale-[1.02] transition duration-300"
+                    />
+                  </button>
+                </div>
               )}
             </div>
 
@@ -299,6 +608,147 @@ export const EcoChallengeValidationModal: React.FC<EcoChallengeValidationModalPr
               </label>
             </div>
 
+            {/* Camera Photo Proof Capture Box */}
+            <div className="rounded-2xl border border-stone-200 dark:border-white/10 bg-stone-50 dark:bg-slate-950/60 p-3.5 space-y-2.5">
+              <div className="flex items-center justify-between gap-2">
+                <span className="text-xs font-bold text-slate-900 dark:text-white flex items-center gap-1.5">
+                  <Camera className="w-4 h-4 text-emerald-600 dark:text-emerald-400 shrink-0" />
+                  <span>Preuve photo de ramassage</span>
+                </span>
+                <span className="text-[10px] font-medium text-slate-500 dark:text-slate-400">
+                  Synchronisée Firebase Storage
+                </span>
+              </div>
+
+              <input
+                ref={fileInputRef}
+                type="file"
+                accept="image/*"
+                capture="environment"
+                onChange={handleFileInputChange}
+                className="hidden"
+              />
+
+              {cameraError && (
+                <div className="rounded-xl bg-amber-50 dark:bg-amber-950/40 border border-amber-500/35 px-3 py-2 text-[11px] text-amber-800 dark:text-amber-200 flex items-start gap-2">
+                  <AlertCircle className="w-3.5 h-3.5 text-amber-600 dark:text-amber-400 shrink-0 mt-0.5" />
+                  <span>{cameraError}</span>
+                </div>
+              )}
+
+              {isCameraActive ? (
+                <div className="space-y-2">
+                  <div className="relative rounded-xl overflow-hidden bg-black border border-emerald-500/40 aspect-[4/3]">
+                    <video
+                      ref={videoRef}
+                      autoPlay
+                      playsInline
+                      muted
+                      className="w-full h-full object-cover"
+                    />
+                    <div className="absolute top-2 left-2 bg-black/65 text-white text-[10px] font-bold px-2 py-1 rounded-lg backdrop-blur-sm">
+                      Visée directe · Sac de déchets / site propre
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <button
+                      type="button"
+                      onClick={handleCapturePhoto}
+                      disabled={isProcessingPhoto}
+                      className="flex-1 min-h-[44px] px-3 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-black text-xs flex items-center justify-center gap-1.5 transition active:scale-95 disabled:opacity-60"
+                    >
+                      {isProcessingPhoto ? (
+                        <Loader2 className="w-4 h-4 animate-spin" />
+                      ) : (
+                        <Camera className="w-4 h-4" />
+                      )}
+                      <span>Capturer</span>
+                    </button>
+                    <button
+                      type="button"
+                      onClick={handleToggleFacingCamera}
+                      title="Changer de caméra"
+                      className="min-w-[44px] min-h-[44px] px-3 rounded-xl bg-white dark:bg-slate-900 border border-stone-200 dark:border-white/10 text-slate-700 dark:text-slate-200 flex items-center justify-center transition"
+                    >
+                      <SwitchCamera className="w-4 h-4" />
+                    </button>
+                    <button
+                      type="button"
+                      onClick={stopCameraStream}
+                      className="min-h-[44px] px-3 rounded-xl bg-stone-200 dark:bg-white/10 text-slate-700 dark:text-slate-200 text-xs font-bold transition"
+                    >
+                      Annuler
+                    </button>
+                  </div>
+                </div>
+              ) : previewUrl && capturedBlob ? (
+                <div className="space-y-2">
+                  <div className="relative rounded-xl overflow-hidden border border-emerald-500/45 bg-black/10">
+                    <img
+                      src={sanitizeImageUrl(previewUrl, { allowBlob: true })}
+                      alt="Aperçu preuve ramassage de déchets"
+                      className="w-full h-44 object-cover"
+                    />
+                    <div className="absolute bottom-2 left-2 right-2 flex items-center justify-between gap-2 bg-black/70 text-white text-[10px] font-semibold px-2.5 py-1.5 rounded-lg backdrop-blur-sm">
+                      <span className="truncate">
+                        Photo prête · {formatPhotoSize(capturedBlob.size)} (JPEG)
+                      </span>
+                      <span className="text-emerald-300 font-bold shrink-0">Prêt</span>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <button
+                      type="button"
+                      onClick={() => startCamera(facingMode)}
+                      disabled={isSubmitting}
+                      className="flex-1 min-h-[44px] px-3 py-1.5 rounded-xl bg-white dark:bg-slate-900 border border-stone-200 dark:border-white/10 hover:border-emerald-500/40 text-slate-800 dark:text-slate-200 text-xs font-bold flex items-center justify-center gap-1.5 transition"
+                    >
+                      <RotateCcw className="w-3.5 h-3.5" />
+                      <span>Reprendre</span>
+                    </button>
+                    <button
+                      type="button"
+                      onClick={clearCapturedPhoto}
+                      disabled={isSubmitting}
+                      className="min-h-[44px] px-3 py-1.5 rounded-xl border border-red-500/35 text-red-700 dark:text-red-300 text-xs font-bold flex items-center gap-1.5 transition"
+                    >
+                      <Trash2 className="w-3.5 h-3.5" />
+                      <span>Retirer</span>
+                    </button>
+                  </div>
+                </div>
+              ) : (
+                <div className="grid grid-cols-2 gap-2">
+                  <button
+                    type="button"
+                    onClick={() => startCamera(facingMode)}
+                    disabled={isStartingCamera || isProcessingPhoto || isSubmitting}
+                    className="min-h-[44px] px-3 py-2 rounded-xl copper-gradient text-slate-950 font-black text-xs flex items-center justify-center gap-1.5 shadow-sm active:scale-95 transition disabled:opacity-60"
+                  >
+                    {isStartingCamera ? (
+                      <Loader2 className="w-4 h-4 animate-spin" />
+                    ) : (
+                      <Camera className="w-4 h-4" />
+                    )}
+                    <span>Caméra directe</span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => fileInputRef.current?.click()}
+                    disabled={isStartingCamera || isProcessingPhoto || isSubmitting}
+                    className="min-h-[44px] px-3 py-2 rounded-xl bg-white dark:bg-slate-900 border border-stone-200 dark:border-white/10 hover:border-emerald-500/50 text-slate-800 dark:text-slate-200 font-bold text-xs flex items-center justify-center gap-1.5 transition disabled:opacity-60"
+                  >
+                    {isProcessingPhoto ? (
+                      <Loader2 className="w-4 h-4 animate-spin" />
+                    ) : (
+                      <ImagePlus className="w-4 h-4" />
+                    )}
+                    <span>Appareil / Photo</span>
+                  </button>
+                </div>
+              )}
+            </div>
+
             <div className="space-y-1">
               <div className="flex items-center justify-between text-[11px] text-slate-600 dark:text-slate-400">
                 <label htmlFor="eco-waste-note" className="font-semibold">
@@ -329,13 +779,44 @@ export const EcoChallengeValidationModal: React.FC<EcoChallengeValidationModalPr
               )}
               <span>
                 {isSubmitting
-                  ? 'Synchronisation Firestore...'
+                  ? uploadProgress !== null && uploadProgress < 100
+                    ? `Envoi photo Firebase Storage (${uploadProgress}%)...`
+                    : 'Synchronisation Firestore...'
+                  : capturedBlob
+                  ? `Valider avec photo (+${challenge.ecoPoints} pts)`
                   : `Valider Zéro Déchet (+${challenge.ecoPoints} pts)`}
               </span>
             </button>
           </form>
         )}
       </div>
+
+      {/* Fullscreen Proof Photo Lightbox */}
+      {expandedProofUrl && (
+        <div
+          className="fixed inset-0 z-[60] bg-black/90 flex items-center justify-center p-4"
+          onClick={(e) => {
+            e.stopPropagation();
+            setExpandedProofUrl(null);
+          }}
+        >
+          <button
+            type="button"
+            aria-label="Fermer l'aperçu photo"
+            onClick={() => setExpandedProofUrl(null)}
+            className="absolute top-4 right-4 min-w-[44px] min-h-[44px] rounded-xl bg-white/15 text-white flex items-center justify-center"
+          >
+            <X className="w-5 h-5" />
+          </button>
+          <img
+            src={sanitizeImageUrl(expandedProofUrl)}
+            alt="Preuve photo ramassage de déchets"
+            referrerPolicy="no-referrer"
+            className="max-w-full max-h-[85vh] rounded-2xl object-contain border border-white/20 shadow-2xl"
+            onClick={(e) => e.stopPropagation()}
+          />
+        </div>
+      )}
     </div>
   );
 };
@@ -400,7 +881,7 @@ export const EcoChallengesSection: React.FC<EcoChallengesSectionProps> = ({
               Défis Écologiques Zéro Déchet
             </h3>
             <p className="text-[11px] text-slate-600 dark:text-slate-400 truncate">
-              {computed.currentRankLabel} · Badges virtuels synchronisés Firebase
+              {computed.currentRankLabel} · Badges &amp; preuves photo Firebase
             </p>
           </div>
         </div>
@@ -418,7 +899,7 @@ export const EcoChallengesSection: React.FC<EcoChallengesSectionProps> = ({
               Synchronisez vos badges écologiques
             </span>
             <span className="text-[11px] text-slate-600 dark:text-slate-400 block truncate">
-              Connectez Google pour sauvegarder vos défis sans déchets sur Firestore
+              Connectez Google pour sauvegarder vos défis &amp; preuves photo sur Firebase
             </span>
           </div>
           {onSignInGoogle && (
@@ -543,11 +1024,32 @@ export const EcoChallengesSection: React.FC<EcoChallengesSectionProps> = ({
                       </p>
                     </div>
                   </div>
+
+                  {sanitizeImageUrl(completion?.proofPhotoUrl) && (
+                    <button
+                      type="button"
+                      onClick={() => onOpenChallengeModal(challenge)}
+                      title="Voir la preuve photo"
+                      className="w-12 h-12 rounded-xl overflow-hidden border border-emerald-500/40 shrink-0"
+                    >
+                      <img
+                        src={sanitizeImageUrl(completion?.proofPhotoUrl)}
+                        alt={`Preuve ${challenge.parkName}`}
+                        referrerPolicy="no-referrer"
+                        className="w-full h-full object-cover"
+                      />
+                    </button>
+                  )}
                 </div>
 
                 <div className="pt-2 border-t border-stone-200/80 dark:border-white/5 flex items-center justify-between gap-2 text-[11px]">
                   <span className="text-slate-700 dark:text-slate-300 font-medium truncate">
                     Badge : <strong>{challenge.badge.name}</strong>
+                    {completion?.proofPhotoUrl && (
+                      <span className="ml-1.5 text-emerald-700 dark:text-emerald-400 font-bold">
+                        · Photo jointe
+                      </span>
+                    )}
                   </span>
 
                   <button

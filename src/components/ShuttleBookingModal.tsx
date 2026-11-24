@@ -7,6 +7,7 @@ import { CategoryIcon } from './CategoryIcon';
 interface ShuttleBookingModalProps {
   shuttles: ShuttleService[];
   isOpen: boolean;
+  focusedShuttleId?: string | null;
   onClose: () => void;
   onBookShuttle: (shuttle: ShuttleService) => void;
 }
@@ -14,6 +15,7 @@ interface ShuttleBookingModalProps {
 export const ShuttleBookingModal: React.FC<ShuttleBookingModalProps> = ({
   shuttles,
   isOpen,
+  focusedShuttleId,
   onClose,
   onBookShuttle,
 }) => {
@@ -79,63 +81,76 @@ export const ShuttleBookingModal: React.FC<ShuttleBookingModalProps> = ({
           )}
 
           <div className="space-y-3">
-            {shuttles.map((s) => {
-              const occupancy = Math.round((s.bookedSeats / s.totalSeats) * 100);
-              const remaining = s.totalSeats - s.bookedSeats;
+            {[...shuttles]
+              .sort((a, b) => (a.id === focusedShuttleId ? -1 : b.id === focusedShuttleId ? 1 : 0))
+              .map((s) => {
+                const occupancy = Math.round((s.bookedSeats / Math.max(1, s.totalSeats)) * 100);
+                const remaining = Math.max(0, s.totalSeats - s.bookedSeats);
+                const isFocused = s.id === focusedShuttleId;
+                const barColor =
+                  remaining <= 0
+                    ? 'bg-red-600'
+                    : occupancy >= 80
+                    ? 'bg-gradient-to-r from-amber-500 to-rose-500'
+                    : occupancy >= 55
+                    ? 'bg-gradient-to-r from-emerald-500 to-amber-500'
+                    : 'bg-emerald-500';
 
-              return (
-                <div
-                  key={s.id}
-                  className="bg-stone-50 dark:bg-slate-900/70 border border-stone-200 dark:border-white/5 hover:border-amber-500/40 rounded-2xl p-3.5 space-y-2.5 transition shadow-sm"
-                >
-                  <div className="flex justify-between items-start">
-                    <div>
-                      <span className="text-[9px] font-bold px-2 py-0.5 rounded bg-amber-500/15 dark:bg-amber-500/10 text-amber-800 dark:text-amber-400 border border-amber-500/30 dark:border-amber-500/20">
-                        {s.type}
+                return (
+                  <div
+                    key={s.id}
+                    className={`bg-stone-50 dark:bg-slate-900/70 border rounded-2xl p-3.5 space-y-2.5 transition shadow-sm ${
+                      isFocused
+                        ? 'border-amber-500 ring-1 ring-amber-500/40'
+                        : 'border-stone-200 dark:border-white/5 hover:border-amber-500/40'
+                    }`}
+                  >
+                    <div className="flex justify-between items-start">
+                      <div>
+                        <span className="text-[10px] font-semibold text-amber-800 dark:text-amber-400">
+                          {s.type}
+                        </span>
+                        <h4 className="font-bold text-sm text-slate-900 dark:text-white mt-0.5">{s.model}</h4>
+                      </div>
+                      <span className="font-black font-mono tabular-nums text-amber-700 dark:text-amber-400 text-sm">
+                        {s.price.toLocaleString('fr-FR')} FCFA
                       </span>
-                      <h4 className="font-bold text-sm text-slate-900 dark:text-white mt-1">{s.model}</h4>
                     </div>
-                    <span className="font-black text-amber-700 dark:text-amber-400 text-sm">
-                      {s.price.toLocaleString('fr-FR')} FCFA
-                    </span>
-                  </div>
 
-                  <div className="space-y-1 text-xs text-slate-700 dark:text-slate-300">
-                    <div className="flex items-center gap-1.5 text-[11px] text-slate-600 dark:text-slate-400">
-                      <MapPin className="w-3.5 h-3.5 text-amber-600 dark:text-amber-500 flex-shrink-0" />
-                      <span className="truncate">Départ: <strong className="text-slate-900 dark:text-slate-200">{s.departurePoint}</strong></span>
+                    <div className="space-y-1 text-xs text-slate-700 dark:text-slate-300">
+                      <div className="flex items-center gap-1.5 text-[11px] text-slate-600 dark:text-slate-400">
+                        <MapPin className="w-3.5 h-3.5 text-amber-600 dark:text-amber-500 flex-shrink-0" />
+                        <span className="truncate">Départ: <strong className="text-slate-900 dark:text-slate-200">{s.departurePoint}</strong></span>
+                      </div>
+                      <div className="flex items-center gap-1.5 text-[11px] text-slate-600 dark:text-slate-400">
+                        <MapPin className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-500 flex-shrink-0" />
+                        <span className="truncate">Arrivée: <strong className="text-slate-900 dark:text-slate-200">{s.destination}</strong></span>
+                      </div>
+                      <div className="flex items-center gap-3 text-[11px] text-slate-600 dark:text-slate-400 pt-0.5">
+                        <span className="flex items-center gap-1">
+                          <Clock className="w-3 h-3 text-amber-600 dark:text-amber-500" /> {s.departureTime} (Retour {s.returnTime})
+                        </span>
+                        <span className="flex items-center gap-1">
+                          <User className="w-3 h-3 text-amber-600 dark:text-amber-500" /> {s.driverName}
+                        </span>
+                      </div>
                     </div>
-                    <div className="flex items-center gap-1.5 text-[11px] text-slate-600 dark:text-slate-400">
-                      <MapPin className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-500 flex-shrink-0" />
-                      <span className="truncate">Arrivée: <strong className="text-slate-900 dark:text-slate-200">{s.destination}</strong></span>
-                    </div>
-                    <div className="flex items-center gap-3 text-[11px] text-slate-600 dark:text-slate-400 pt-0.5">
-                      <span className="flex items-center gap-1">
-                        <Clock className="w-3 h-3 text-amber-600 dark:text-amber-500" /> {s.departureTime} (Retour {s.returnTime})
-                      </span>
-                      <span className="flex items-center gap-1">
-                        <User className="w-3 h-3 text-amber-600 dark:text-amber-500" /> {s.driverName}
-                      </span>
-                    </div>
-                  </div>
 
-                  {/* Occupancy bar */}
-                  <div className="space-y-1 pt-1">
-                    <div className="flex justify-between text-[10px] text-slate-600 dark:text-slate-400">
-                      <span>Remplissage</span>
-                      <span className="font-bold text-amber-700 dark:text-amber-400">
-                        {remaining > 0 ? `${s.bookedSeats}/${s.totalSeats} places (${remaining} restantes)` : 'COMPLET'}
-                      </span>
+                    {/* Occupancy bar */}
+                    <div className="space-y-1 pt-1">
+                      <div className="flex justify-between text-[10px] text-slate-600 dark:text-slate-400">
+                        <span>Remplissage ({occupancy}%)</span>
+                        <span className="font-bold font-mono tabular-nums text-amber-700 dark:text-amber-400">
+                          {remaining > 0 ? `${s.bookedSeats}/${s.totalSeats} places (${remaining} restantes)` : 'COMPLET'}
+                        </span>
+                      </div>
+                      <div className="w-full h-2 bg-stone-200 dark:bg-slate-800 rounded-full overflow-hidden">
+                        <div
+                          className={`h-full rounded-full transition-all ${barColor}`}
+                          style={{ width: `${occupancy}%` }}
+                        />
+                      </div>
                     </div>
-                    <div className="w-full h-1.5 bg-stone-200 dark:bg-slate-800 rounded-full overflow-hidden">
-                      <div
-                        className={`h-full rounded-full transition-all ${
-                          occupancy > 85 ? 'bg-amber-500' : 'bg-emerald-500'
-                        }`}
-                        style={{ width: `${occupancy}%` }}
-                      />
-                    </div>
-                  </div>
 
                   <div className="flex items-center gap-2 pt-1">
                     <a

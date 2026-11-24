@@ -1,0 +1,1 @@
+var e=`/assets/bivouac_equatorial_gear_1795342715941-BScsisOL.jpg`;export{e as t};

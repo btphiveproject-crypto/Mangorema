@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { ExpeditionEvent, Booking } from '../types';
-import { X, Check, ShieldCheck, Phone, Bus, Tent, UserCheck, Utensils, QrCode, ArrowRight, Download, Sparkles, BellRing } from 'lucide-react';
+import { X, Check, ShieldCheck, Phone, Bus, Tent, UserCheck, Utensils, QrCode, ArrowRight, Download, Sparkles, BellRing, Share2, ExternalLink } from 'lucide-react';
 import confetti from 'canvas-confetti';
 import { scheduleBookingNotification } from '../utils/notificationService';
 import { CategoryIcon } from './CategoryIcon';
@@ -9,12 +9,14 @@ interface MultiServiceCartModalProps {
   event: ExpeditionEvent | null;
   onClose: () => void;
   onBookingConfirmed: (booking: Booking) => void;
+  onShareExpedition?: (booking: Booking) => void;
 }
 
 export const MultiServiceCartModal: React.FC<MultiServiceCartModalProps> = ({
   event,
   onClose,
   onBookingConfirmed,
+  onShareExpedition,
 }) => {
   if (!event) return null;
 
@@ -25,7 +27,7 @@ export const MultiServiceCartModal: React.FC<MultiServiceCartModalProps> = ({
   const [includeMealPack, setIncludeMealPack] = useState(false);
 
   // Mobile Money
-  const [operator, setOperator] = useState<'AIRTEL' | 'MOOV'>('AIRTEL');
+  const [operator, setOperator] = useState<'AIRTEL' | 'MOOV' | 'GHETTOPAY'>('AIRTEL');
   const [phoneNumber, setPhoneNumber] = useState('074 12 34 56');
   const [ussdPin, setUssdPin] = useState('');
 
@@ -33,6 +35,7 @@ export const MultiServiceCartModal: React.FC<MultiServiceCartModalProps> = ({
   const [step, setStep] = useState<'cart' | 'ussd' | 'success'>('cart');
   const [isProcessing, setIsProcessing] = useState(false);
   const [confirmedBooking, setConfirmedBooking] = useState<Booking | null>(null);
+  const [validationError, setValidationError] = useState<string | null>(null);
 
   // Price calculations
   const shuttlePrice = includeShuttle ? 5000 : 0;
@@ -44,18 +47,20 @@ export const MultiServiceCartModal: React.FC<MultiServiceCartModalProps> = ({
   const handleStartPayment = (e: React.FormEvent) => {
     e.preventDefault();
     if (!phoneNumber.trim()) {
-      alert('Veuillez renseigner votre numéro Mobile Money gabonais.');
+      setValidationError('Veuillez renseigner votre numéro Mobile Money gabonais.');
       return;
     }
+    setValidationError(null);
     setStep('ussd');
   };
 
   const handleConfirmPIN = (e: React.FormEvent) => {
     e.preventDefault();
     if (ussdPin.length < 4) {
-      alert('Veuillez saisir votre code PIN à 4 chiffres pour autoriser le débit.');
+      setValidationError('Veuillez saisir votre code PIN à 4 chiffres pour autoriser le débit.');
       return;
     }
+    setValidationError(null);
 
     setIsProcessing(true);
 
@@ -240,45 +245,77 @@ export const MultiServiceCartModal: React.FC<MultiServiceCartModalProps> = ({
             {/* Operator Selection */}
             <div className="pt-2 border-t border-stone-200 dark:border-white/10 space-y-2">
               <div className="text-xs font-bold text-slate-800 dark:text-slate-200">Mode de paiement Mobile Money Gabon :</div>
-              <div className="grid grid-cols-2 gap-2">
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
                 <button
                   type="button"
                   onClick={() => setOperator('AIRTEL')}
-                  className={`p-3 rounded-xl border text-xs font-bold flex items-center justify-center gap-2 transition ${
+                  className={`p-2.5 rounded-xl border text-xs font-bold flex items-center justify-center gap-2 transition ${
                     operator === 'AIRTEL'
                       ? 'bg-red-50 dark:bg-red-950/70 border-red-500 text-red-800 dark:text-red-200 shadow-md dark:shadow-red-950/50'
                       : 'bg-stone-50 dark:bg-slate-900 border-stone-200 dark:border-white/10 text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200'
                   }`}
                 >
-                  <span className="w-2.5 h-2.5 rounded-full bg-red-600 inline-block" />
-                  <span>Airtel Money (*150#)</span>
+                  <span className="w-2.5 h-2.5 rounded-full bg-red-600 inline-block shrink-0" />
+                  <span>Airtel (*150#)</span>
                 </button>
 
                 <button
                   type="button"
                   onClick={() => setOperator('MOOV')}
-                  className={`p-3 rounded-xl border text-xs font-bold flex items-center justify-center gap-2 transition ${
+                  className={`p-2.5 rounded-xl border text-xs font-bold flex items-center justify-center gap-2 transition ${
                     operator === 'MOOV'
                       ? 'bg-blue-50 dark:bg-blue-950/70 border-blue-500 text-blue-800 dark:text-blue-200 shadow-md dark:shadow-blue-950/50'
                       : 'bg-stone-50 dark:bg-slate-900 border-stone-200 dark:border-white/10 text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200'
                   }`}
                 >
-                  <span className="w-2.5 h-2.5 rounded-full bg-blue-500 inline-block" />
-                  <span>Moov Money (*555#)</span>
+                  <span className="w-2.5 h-2.5 rounded-full bg-blue-500 inline-block shrink-0" />
+                  <span>Moov (*555#)</span>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => setOperator('GHETTOPAY')}
+                  className={`p-2.5 rounded-xl border text-xs font-bold flex items-center justify-center gap-2 transition ${
+                    operator === 'GHETTOPAY'
+                      ? 'bg-emerald-50 dark:bg-emerald-950/70 border-emerald-500 text-emerald-800 dark:text-emerald-200 shadow-md dark:shadow-emerald-950/50'
+                      : 'bg-stone-50 dark:bg-slate-900 border-stone-200 dark:border-white/10 text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200'
+                  }`}
+                >
+                  <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 inline-block shrink-0" />
+                  <span>GhettoPay</span>
                 </button>
               </div>
 
+              {operator === 'GHETTOPAY' && (
+                <div className="bg-emerald-50/70 dark:bg-emerald-950/35 border border-emerald-500/35 rounded-xl px-3 py-2 flex items-center justify-between gap-2 text-[10px]">
+                  <span className="text-emerald-900 dark:text-emerald-200 font-medium">
+                    Portefeuille mobile gabonais FCFA
+                  </span>
+                  <a
+                    href="https://www.ghettopay.com/"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="inline-flex items-center gap-1 font-bold text-emerald-700 dark:text-emerald-300 hover:underline shrink-0"
+                  >
+                    <span>ghettopay.com</span>
+                    <ExternalLink className="w-3 h-3" />
+                  </a>
+                </div>
+              )}
+
               <div>
                 <label className="text-[11px] text-slate-600 dark:text-slate-400 block mb-1">
-                  Numéro de débit ({operator === 'AIRTEL' ? '074 / 077' : '065 / 066 / 062'}) :
+                  {operator === 'GHETTOPAY'
+                    ? 'Numéro mobile ou identifiant GhettoPay :'
+                    : `Numéro de débit (${operator === 'AIRTEL' ? '074 / 077' : '065 / 066 / 062'}) :`}
                 </label>
                 <div className="relative">
                   <Phone className="w-4 h-4 text-slate-400 absolute left-3 top-3" />
                   <input
-                    type="tel"
+                    type="text"
                     value={phoneNumber}
                     onChange={(e) => setPhoneNumber(e.target.value)}
-                    placeholder="074 XX XX XX"
+                    placeholder={operator === 'GHETTOPAY' ? '074 XX XX XX ou @id' : '074 XX XX XX'}
                     className="w-full bg-stone-50 dark:bg-slate-900 border border-stone-200 dark:border-white/10 rounded-xl py-2.5 pl-9 pr-3 text-sm font-mono text-slate-900 dark:text-white focus:outline-none focus:border-amber-500"
                   />
                 </div>
@@ -286,6 +323,11 @@ export const MultiServiceCartModal: React.FC<MultiServiceCartModalProps> = ({
             </div>
 
             {/* Total Recap & Action */}
+            {validationError && step === 'cart' && (
+              <div className="bg-red-50 dark:bg-red-950/60 border border-red-500/40 rounded-xl p-2.5 text-xs text-red-800 dark:text-red-200">
+                {validationError}
+              </div>
+            )}
             <div className="pt-3 border-t border-stone-200 dark:border-white/10 flex items-center justify-between">
               <div>
                 <span className="text-[11px] text-slate-600 dark:text-slate-400 block">Total Panier Unique</span>
@@ -298,7 +340,9 @@ export const MultiServiceCartModal: React.FC<MultiServiceCartModalProps> = ({
                 onClick={handleStartPayment}
                 className="px-6 py-3 copper-gradient hover:opacity-95 text-slate-950 font-extrabold rounded-xl text-xs uppercase tracking-wider flex items-center gap-2 shadow-lg shadow-amber-900/25 dark:shadow-amber-900/40 active:scale-95 transition"
               >
-                <span>Débiter via {operator === 'AIRTEL' ? 'Airtel' : 'Moov'}</span>
+                <span>
+                  Débiter via {operator === 'AIRTEL' ? 'Airtel' : operator === 'MOOV' ? 'Moov' : 'GhettoPay'}
+                </span>
                 <ArrowRight className="w-4 h-4" />
               </button>
             </div>
@@ -313,17 +357,19 @@ export const MultiServiceCartModal: React.FC<MultiServiceCartModalProps> = ({
             </div>
 
             <div>
-              <h4 className="font-black text-lg text-slate-900 dark:text-white">Validation USSD en cours</h4>
+              <h4 className="font-black text-lg text-slate-900 dark:text-white">
+                {operator === 'GHETTOPAY' ? 'Validation GhettoPay en cours' : 'Validation USSD en cours'}
+              </h4>
               <p className="text-xs text-slate-600 dark:text-slate-400 mt-1 max-w-xs mx-auto">
-                Un push de débit de <strong className="text-amber-700 dark:text-amber-400">{grandTotal.toLocaleString('fr-FR')} FCFA</strong> a été envoyé sur votre mobile <strong>{phoneNumber}</strong> ({operator === 'AIRTEL' ? 'Airtel Money Gabon' : 'Moov Money Gabon'}).
+                Un push de débit de <strong className="text-amber-700 dark:text-amber-400">{grandTotal.toLocaleString('fr-FR')} FCFA</strong> a été envoyé sur votre compte <strong>{phoneNumber}</strong> ({operator === 'AIRTEL' ? 'Airtel Money Gabon' : operator === 'MOOV' ? 'Moov Money Gabon' : 'GhettoPay · ghettopay.com'}).
               </p>
             </div>
 
             {/* Simulated USSD Modal Prompt */}
             <form onSubmit={handleConfirmPIN} className="bg-stone-50 dark:bg-slate-950 border border-amber-500/40 dark:border-amber-600/40 rounded-2xl p-4 text-left space-y-3">
               <div className="flex justify-between items-center text-[11px] text-amber-700 dark:text-amber-400 font-mono">
-                <span>POP-UP {operator} GABON</span>
-                <span>*150# / *555#</span>
+                <span>{operator === 'GHETTOPAY' ? 'WALLET GHETTOPAY GABON' : `POP-UP ${operator} GABON`}</span>
+                <span>{operator === 'GHETTOPAY' ? 'ghettopay.com' : '*150# / *555#'}</span>
               </div>
               <p className="text-xs text-slate-700 dark:text-slate-200">
                 Payer {grandTotal.toLocaleString('fr-FR')} FCFA à MANGOREMA EXPEDITIONS ? Saisissez votre code secret Mobile Money :
@@ -337,6 +383,11 @@ export const MultiServiceCartModal: React.FC<MultiServiceCartModalProps> = ({
                 autoFocus
                 className="w-full text-center tracking-[1em] font-mono text-2xl py-2 bg-white dark:bg-slate-900 border border-amber-500/60 rounded-xl text-amber-700 dark:text-amber-400 focus:outline-none"
               />
+              {validationError && step === 'ussd' && (
+                <div className="text-[11px] text-red-700 dark:text-red-300 font-semibold">
+                  {validationError}
+                </div>
+              )}
               <div className="flex gap-2 pt-1">
                 <button
                   type="button"
@@ -426,7 +477,7 @@ export const MultiServiceCartModal: React.FC<MultiServiceCartModalProps> = ({
                 </div>
                 <div className="flex justify-between text-[10px] text-slate-500 dark:text-slate-400">
                   <span>Canal :</span>
-                  <span>{operator} MONEY ({phoneNumber})</span>
+                  <span>{operator === 'GHETTOPAY' ? `GHETTOPAY (${phoneNumber})` : `${operator} MONEY (${phoneNumber})`}</span>
                 </div>
               </div>
 
@@ -441,11 +492,18 @@ export const MultiServiceCartModal: React.FC<MultiServiceCartModalProps> = ({
 
             {/* Buttons */}
             <div className="flex flex-col gap-2 pt-1">
+              {onShareExpedition && (
+                <button
+                  type="button"
+                  onClick={() => onShareExpedition(confirmedBooking)}
+                  className="w-full py-3 bg-emerald-600 hover:bg-emerald-500 text-white font-black rounded-xl text-xs uppercase tracking-wider shadow-lg flex items-center justify-center gap-2 active:scale-95 transition"
+                >
+                  <Share2 className="w-4 h-4" />
+                  <span>Partager mon expédition</span>
+                </button>
+              )}
               <button
                 onClick={() => {
-                  alert(
-                    `Pass ${confirmedBooking.refNumber} enregistré dans votre profil. Vous recevrez également un SMS de confirmation au ${phoneNumber}.`
-                  );
                   onClose();
                 }}
                 className="w-full py-3 copper-gradient text-slate-950 font-black rounded-xl text-xs uppercase tracking-wider shadow-lg active:scale-95 transition"

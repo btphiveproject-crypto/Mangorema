@@ -528,3 +528,76 @@ export function triggerWeeklyChallengePushTest(weekLabel: string, pendingCount: 
   return { nativeSent, title, body };
 }
 
+// =========================================================================
+// Seasonal Wildlife & Flora Alerts Notifications (Gabon Biodiversity)
+// =========================================================================
+const WILDLIFE_ALERTS_SUB_KEY = 'mangorema_wildlife_alerts_sub_v1';
+
+export function getSubscribedWildlifeAlertIds(): string[] {
+  if (typeof window === 'undefined') return ['wl-tortues-luth'];
+  try {
+    const raw = localStorage.getItem(WILDLIFE_ALERTS_SUB_KEY);
+    if (!raw) {
+      return ['wl-tortues-luth', 'wl-elephants-foret'];
+    }
+    const parsed = JSON.parse(raw);
+    return Array.isArray(parsed) ? parsed.filter((x): x is string => typeof x === 'string') : [];
+  } catch {
+    return ['wl-tortues-luth'];
+  }
+}
+
+export function toggleWildlifeAlertSubscription(params: {
+  alertId: string;
+  title: string;
+  parkOrZone: string;
+  seasonLabel: string;
+  icon: string;
+}): { subscribedIds: string[]; added: boolean } {
+  const current = getSubscribedWildlifeAlertIds();
+  const exists = current.includes(params.alertId);
+  const next = exists
+    ? current.filter((id) => id !== params.alertId)
+    : [params.alertId, ...current];
+
+  try {
+    if (typeof window !== 'undefined') {
+      localStorage.setItem(WILDLIFE_ALERTS_SUB_KEY, JSON.stringify(next));
+    }
+  } catch (err) {
+    console.error('Erreur sauvegarde alertes faune/flore:', err);
+  }
+
+  const notifs = getStoredNotifications();
+  const notifId = `notif-wildlife-${params.alertId}`;
+  const filtered = notifs.filter((n) => n.id !== notifId);
+
+  if (!exists) {
+    const scheduleNotif: ScheduledNotification = {
+      id: notifId,
+      wildlifeAlertId: params.alertId,
+      targetType: 'WILDLIFE_ALERT',
+      title: `${params.icon} Alerte Saison Nature : ${params.title}`,
+      body: `Observation active (${params.seasonLabel}) · Zone : ${params.parkOrZone}. Consultez les consignes d'approche ANPN.`,
+      eventTitle: params.title,
+      location: params.parkOrZone,
+      departureTimeFormatted: params.seasonLabel,
+      alertTimeFormatted: 'Veille saisonnière active',
+      scheduledTimestamp: Date.now() + 24 * 60 * 60 * 1000,
+      departureTimestamp: Date.now() + 24 * 60 * 60 * 1000,
+      enabled: true,
+      status: 'PENDING',
+      createdAt: new Date().toISOString(),
+    };
+    filtered.unshift(scheduleNotif);
+    sendWebNotification(scheduleNotif.title, {
+      body: scheduleNotif.body,
+      tag: `mangorema-wl-${params.alertId}`,
+    });
+  }
+
+  saveStoredNotifications(filtered);
+  return { subscribedIds: next, added: !exists };
+}
+
+

@@ -13,6 +13,7 @@ import {
   RefreshCw,
   Send,
   AlertTriangle,
+  Camera,
 } from 'lucide-react';
 import {
   EcoChallengeCompletion,
@@ -68,6 +69,9 @@ export const WeeklyEcoChallengesSection: React.FC<WeeklyEcoChallengesSectionProp
   const { weekWindow, challenges } = getActiveWeeklyChallenges(new Date(nowMs));
   const countdown = formatCountdownParts(weekWindow.endsAtMs, nowMs);
 
+  const completionById = new Map<string, EcoChallengeCompletion>(
+    completions.map((c) => [c.id, c])
+  );
   const completedIds = new Set(completions.map((c) => c.id));
   const completedWeeklyCount = challenges.filter((c) =>
     completedIds.has(c.challengeId)
@@ -162,7 +166,7 @@ export const WeeklyEcoChallengesSection: React.FC<WeeklyEcoChallengesSectionProp
   const pad = (n: number) => String(n).padStart(2, '0');
 
   return (
-    <section className="bg-white dark:bg-slate-900/90 border border-amber-500/35 rounded-3xl p-4 space-y-3.5 shadow-lg">
+    <section className="glass-card border border-amber-500/40 dark:border-amber-400/25 rounded-3xl p-4 space-y-3.5">
       {/* Header */}
       <div className="flex items-start justify-between gap-2.5">
         <div className="flex items-start gap-2.5 min-w-0">
@@ -188,8 +192,8 @@ export const WeeklyEcoChallengesSection: React.FC<WeeklyEcoChallengesSectionProp
       <div
         className={`rounded-2xl border p-3.5 space-y-2.5 ${
           countdown.isExpiringSoon
-            ? 'bg-amber-50 dark:bg-amber-950/35 border-amber-500/50'
-            : 'bg-stone-50 dark:bg-slate-950/70 border-stone-200 dark:border-white/10'
+            ? 'bg-amber-50/75 dark:bg-amber-950/35 border-amber-500/50'
+            : 'glass-surface border-white/55 dark:border-white/12'
         }`}
       >
         <div className="flex items-center justify-between gap-2 text-xs">
@@ -216,19 +220,19 @@ export const WeeklyEcoChallengesSection: React.FC<WeeklyEcoChallengesSectionProp
           ].map((unit) => (
             <div
               key={unit.label}
-              className="rounded-xl bg-white dark:bg-slate-900 border border-stone-200 dark:border-white/10 py-2 px-1"
+              className="rounded-xl glass-surface border border-white/60 dark:border-white/12 py-2 px-1"
             >
               <span className="text-base font-black text-slate-900 dark:text-white font-mono tabular-nums block leading-none">
                 {unit.value}
               </span>
-              <span className="text-[9px] text-slate-500 dark:text-slate-400 block mt-1">
+              <span className="text-[9px] text-slate-600 dark:text-slate-400 block mt-1">
                 {unit.label}
               </span>
             </div>
           ))}
         </div>
 
-        <div className="h-1.5 rounded-full bg-stone-200 dark:bg-slate-800 overflow-hidden">
+        <div className="h-1.5 rounded-full bg-slate-900/10 dark:bg-white/10 overflow-hidden">
           <div
             className="h-full rounded-full bg-amber-500 transition-all duration-500"
             style={{ width: `${weekWindow.progressPercent}%` }}
@@ -237,14 +241,14 @@ export const WeeklyEcoChallengesSection: React.FC<WeeklyEcoChallengesSectionProp
       </div>
 
       {/* Push Notifications Opt-in Bar */}
-      <div className="rounded-2xl bg-stone-50 dark:bg-slate-950/65 border border-stone-200 dark:border-white/10 p-3 space-y-2">
+      <div className="rounded-2xl glass-surface border border-white/55 dark:border-white/12 p-3 space-y-2">
         <div className="flex items-center justify-between gap-2.5">
           <div className="flex items-center gap-2.5 min-w-0">
             <div
               className={`w-8 h-8 rounded-xl flex items-center justify-center shrink-0 border ${
                 pushEnabled
                   ? 'bg-emerald-500/15 border-emerald-500/40 text-emerald-700 dark:text-emerald-400'
-                  : 'bg-white dark:bg-slate-900 border-stone-200 dark:border-white/10 text-slate-500 dark:text-slate-400'
+                  : 'glass-surface border-white/55 dark:border-white/12 text-slate-600 dark:text-slate-400'
               }`}
             >
               {pushEnabled ? <Bell className="w-4 h-4" /> : <BellOff className="w-4 h-4" />}
@@ -303,7 +307,7 @@ export const WeeklyEcoChallengesSection: React.FC<WeeklyEcoChallengesSectionProp
             <button
               type="button"
               onClick={handleSendPushPreview}
-              className="min-h-[40px] px-2.5 py-1 rounded-xl bg-white dark:bg-slate-900 border border-stone-200 dark:border-white/10 hover:border-amber-500/40 text-amber-700 dark:text-amber-300 font-bold flex items-center gap-1 shrink-0 transition"
+              className="min-h-[40px] px-2.5 py-1 rounded-xl glass-surface border border-white/55 dark:border-white/12 hover:border-amber-500/45 text-amber-700 dark:text-amber-300 font-bold flex items-center gap-1 shrink-0 transition"
             >
               <Send className="w-3 h-3" />
               <span>Tester push</span>
@@ -321,19 +325,20 @@ export const WeeklyEcoChallengesSection: React.FC<WeeklyEcoChallengesSectionProp
       {/* Active Weekly Challenges Cards */}
       <div className="space-y-2.5">
         {challenges.map((challenge) => {
-          const isCompleted = completedIds.has(challenge.challengeId);
+          const completion = completionById.get(challenge.challengeId);
+          const isCompleted = Boolean(completion);
 
           return (
             <div
               key={challenge.challengeId}
               className={`rounded-2xl border p-3.5 space-y-2.5 transition ${
                 isCompleted
-                  ? 'bg-emerald-50/70 dark:bg-emerald-950/25 border-emerald-500/40'
-                  : 'bg-stone-50 dark:bg-slate-950/60 border-stone-200 dark:border-white/10'
+                  ? 'bg-emerald-500/10 border-emerald-500/40'
+                  : 'glass-surface border-white/55 dark:border-white/12'
               }`}
             >
               <div className="flex items-start gap-2.5">
-                <div className="w-10 h-10 rounded-xl bg-white dark:bg-slate-900 border border-stone-200 dark:border-white/10 flex items-center justify-center text-xl shrink-0">
+                <div className="w-10 h-10 rounded-xl glass-surface border border-white/60 dark:border-white/12 flex items-center justify-center text-xl shrink-0">
                   {challenge.badge.icon}
                 </div>
                 <div className="min-w-0 flex-1">
@@ -356,11 +361,33 @@ export const WeeklyEcoChallengesSection: React.FC<WeeklyEcoChallengesSectionProp
                     </p>
                   )}
                 </div>
+
+                {completion?.proofPhotoUrl && (
+                  <button
+                    type="button"
+                    onClick={() => onOpenChallengeModal(challenge)}
+                    title="Voir la preuve photo"
+                    className="w-11 h-11 rounded-xl overflow-hidden border border-emerald-500/40 shrink-0"
+                  >
+                    <img
+                      src={completion.proofPhotoUrl}
+                      alt={`Preuve ${challenge.parkName}`}
+                      className="w-full h-full object-cover"
+                    />
+                  </button>
+                )}
               </div>
 
               <div className="pt-2 border-t border-stone-200/80 dark:border-white/5 flex items-center justify-between gap-2 text-[11px]">
-                <span className="text-slate-700 dark:text-slate-300 font-medium truncate">
-                  Objectif : <strong>{challenge.targetAction}</strong>
+                <span className="text-slate-700 dark:text-slate-300 font-medium truncate flex items-center gap-1">
+                  <span className="truncate">
+                    Objectif : <strong>{challenge.targetAction}</strong>
+                  </span>
+                  {completion?.proofPhotoUrl && (
+                    <span className="inline-flex items-center gap-0.5 text-emerald-700 dark:text-emerald-400 font-bold shrink-0">
+                      · <Camera className="w-3 h-3" /> Photo
+                    </span>
+                  )}
                 </span>
 
                 <button
@@ -394,7 +421,7 @@ export const WeeklyEcoChallengesSection: React.FC<WeeklyEcoChallengesSectionProp
         <button
           type="button"
           onClick={onOpenProfile}
-          className="w-full min-h-[44px] py-2 rounded-xl bg-stone-100 dark:bg-white/5 hover:bg-stone-200 dark:hover:bg-white/10 text-xs font-bold text-slate-800 dark:text-slate-200 transition"
+          className="w-full min-h-[44px] py-2 rounded-xl glass-surface hover:bg-white/75 dark:hover:bg-white/12 border border-white/55 dark:border-white/10 text-xs font-bold text-slate-800 dark:text-slate-100 transition"
         >
           Voir tous mes badges &amp; défis dans mon Profil →
         </button>

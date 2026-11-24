@@ -12,65 +12,233 @@
     --ember-mid: #b45309;
     --ember-light: #d97706;
     --ember-gold: #f59e0b;
+    --canvas-light: #F7F7F3;
+    --surface-light: #FFFFFF;
+    --canvas-dark: #080B09;
+    --surface-dark: #111613;
   }
 
   body {
-    font-family: 'Space Grotesk', 'Plus Jakarta Sans', system-ui, -apple-system, sans-serif;
+    font-family: 'Plus Jakarta Sans', 'Noto Sans Arabic', system-ui, -apple-system, sans-serif;
+    font-feature-settings: "cv02", "cv03", "cv04", "cv11";
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+
+  html[dir='rtl'] body,
+  html[dir='rtl'] .font-sans-body {
+    font-family: 'Noto Sans Arabic', 'Plus Jakarta Sans', system-ui, -apple-system, sans-serif;
+  }
+
+  html[dir='rtl'] .font-serif-display {
+    font-family: 'Noto Sans Arabic', 'DM Serif Display', Georgia, serif;
+  }
+
+  .font-mono,
+  .tabular-nums {
+    font-family: 'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+    font-variant-numeric: tabular-nums;
   }
 }
 
 .font-serif-display {
-  font-family: 'DM Serif Display', Georgia, serif;
+  font-family: 'DM Serif Display', 'Noto Sans Arabic', Georgia, serif;
+  text-wrap: balance;
 }
 
 .font-sans-body {
-  font-family: 'Space Grotesk', 'Plus Jakarta Sans', system-ui, sans-serif;
+  font-family: 'Plus Jakarta Sans', 'Noto Sans Arabic', system-ui, -apple-system, sans-serif;
 }
 
 .copper-gradient {
-  background: linear-gradient(135deg, #78350f 0%, #b45309 35%, #d97706 70%, #f59e0b 100%);
+  background: linear-gradient(135deg, #92400e 0%, #b45309 38%, #d97706 72%, #f59e0b 100%);
 }
 
 .copper-gradient-subtle {
-  background: linear-gradient(135deg, rgba(120, 53, 15, 0.35) 0%, rgba(217, 119, 6, 0.25) 100%);
+  background: linear-gradient(135deg, rgba(146, 64, 14, 0.14) 0%, rgba(217, 119, 6, 0.10) 100%);
 }
 
 .forest-gradient {
-  background: linear-gradient(180deg, rgba(28, 58, 42, 0.4) 0%, rgba(8, 11, 9, 0.95) 100%);
+  background: linear-gradient(180deg, rgba(28, 58, 42, 0.45) 0%, rgba(8, 11, 9, 0.96) 100%);
 }
 
-/* Leaflet map styles */
+/* Settling motion discipline */
+.ease-out-expo {
+  transition-timing-function: cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+/* =========================================================
+   MANGOREMA Glassmorphic ("Effet Vitreux") Design System
+   Calibrated for both Daylight Mist & Nocturnal Canopy
+   ========================================================= */
+
+.glass-scrim {
+  background: linear-gradient(
+    180deg,
+    rgba(244, 245, 240, 0.42) 0%,
+    rgba(246, 247, 243, 0.56) 45%,
+    rgba(239, 242, 237, 0.66) 100%
+  );
+}
+
+.dark .glass-scrim {
+  background: linear-gradient(
+    180deg,
+    rgba(7, 11, 9, 0.48) 0%,
+    rgba(8, 12, 10, 0.62) 45%,
+    rgba(6, 9, 8, 0.76) 100%
+  );
+}
+
+.glass-chrome {
+  background: rgba(255, 255, 255, 0.72);
+  backdrop-filter: blur(22px) saturate(165%);
+  -webkit-backdrop-filter: blur(22px) saturate(165%);
+  box-shadow:
+    0 6px 24px -10px rgba(15, 23, 42, 0.12),
+    inset 0 1px 0 rgba(255, 255, 255, 0.85);
+}
+
+.dark .glass-chrome {
+  background: rgba(10, 15, 12, 0.68);
+  backdrop-filter: blur(22px) saturate(150%);
+  -webkit-backdrop-filter: blur(22px) saturate(150%);
+  box-shadow:
+    0 10px 30px -10px rgba(0, 0, 0, 0.55),
+    inset 0 1px 0 rgba(255, 255, 255, 0.09);
+}
+
+.glass-card {
+  background: linear-gradient(
+    145deg,
+    rgba(255, 255, 255, 0.78) 0%,
+    rgba(250, 250, 247, 0.64) 100%
+  );
+  backdrop-filter: blur(18px) saturate(155%);
+  -webkit-backdrop-filter: blur(18px) saturate(155%);
+  box-shadow:
+    0 12px 32px -12px rgba(15, 23, 42, 0.14),
+    inset 0 1px 0 rgba(255, 255, 255, 0.88);
+}
+
+.dark .glass-card {
+  background: linear-gradient(
+    145deg,
+    rgba(19, 27, 23, 0.70) 0%,
+    rgba(10, 15, 13, 0.62) 100%
+  );
+  backdrop-filter: blur(18px) saturate(150%);
+  -webkit-backdrop-filter: blur(18px) saturate(150%);
+  box-shadow:
+    0 16px 38px -14px rgba(0, 0, 0, 0.58),
+    inset 0 1px 0 rgba(255, 255, 255, 0.11);
+}
+
+.glass-surface {
+  background: rgba(255, 255, 255, 0.54);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.72);
+}
+
+.dark .glass-surface {
+  background: rgba(255, 255, 255, 0.06);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.06);
+}
+
+.glass-modal {
+  background: linear-gradient(
+    155deg,
+    rgba(255, 255, 255, 0.90) 0%,
+    rgba(249, 249, 246, 0.84) 100%
+  );
+  backdrop-filter: blur(26px) saturate(170%);
+  -webkit-backdrop-filter: blur(26px) saturate(170%);
+  box-shadow:
+    0 24px 60px -16px rgba(15, 23, 42, 0.25),
+    inset 0 1px 0 rgba(255, 255, 255, 0.92);
+}
+
+.dark .glass-modal {
+  background: linear-gradient(
+    155deg,
+    rgba(16, 23, 19, 0.88) 0%,
+    rgba(9, 13, 11, 0.84) 100%
+  );
+  backdrop-filter: blur(26px) saturate(155%);
+  -webkit-backdrop-filter: blur(26px) saturate(155%);
+  box-shadow:
+    0 24px 60px -16px rgba(0, 0, 0, 0.78),
+    inset 0 1px 0 rgba(255, 255, 255, 0.12);
+}
+
+/* Leaflet map styles (light & dark compatible) */
 .leaflet-container {
-  background: #0f1512 !important;
-  font-family: inherit !important;
+  background: #e7e5e0 !important;
+  font-family: 'Plus Jakarta Sans', inherit !important;
   border-radius: inherit;
 }
 
+.dark .leaflet-container {
+  background: #0f1512 !important;
+}
+
 .leaflet-popup-content-wrapper {
-  background: #121815 !important;
+  background: rgba(255, 255, 255, 0.90) !important;
+  backdrop-filter: blur(14px) !important;
+  color: #0f172a !important;
+  border: 1px solid rgba(180, 83, 9, 0.28) !important;
+  border-radius: 14px !important;
+  box-shadow: 0 12px 28px -6px rgba(15, 23, 42, 0.18) !important;
+}
+
+.dark .leaflet-popup-content-wrapper {
+  background: rgba(16, 23, 19, 0.88) !important;
+  backdrop-filter: blur(14px) !important;
   color: #f8fafc !important;
-  border: 1px solid rgba(217, 119, 6, 0.3) !important;
-  border-radius: 12px !important;
-  box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.6) !important;
+  border: 1px solid rgba(217, 119, 6, 0.32) !important;
+  box-shadow: 0 12px 28px -6px rgba(0, 0, 0, 0.65) !important;
 }
 
 .leaflet-popup-tip {
-  background: #121815 !important;
+  background: rgba(255, 255, 255, 0.92) !important;
+}
+
+.dark .leaflet-popup-tip {
+  background: rgba(16, 23, 19, 0.92) !important;
 }
 
 .leaflet-control-zoom {
-  border: 1px solid rgba(255, 255, 255, 0.1) !important;
-  border-radius: 8px !important;
+  border: 1px solid rgba(15, 23, 42, 0.12) !important;
+  border-radius: 10px !important;
   overflow: hidden;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08) !important;
 }
 
-.leaflet-control-zoom-in, .leaflet-control-zoom-out {
-  background: #18221d !important;
-  color: #f59e0b !important;
+.dark .leaflet-control-zoom {
+  border: 1px solid rgba(255, 255, 255, 0.14) !important;
+}
+
+.leaflet-control-zoom-in,
+.leaflet-control-zoom-out {
+  background: rgba(255, 255, 255, 0.85) !important;
+  backdrop-filter: blur(10px) !important;
+  color: #b45309 !important;
   border: none !important;
 }
 
-.leaflet-control-zoom-in:hover, .leaflet-control-zoom-out:hover {
+.dark .leaflet-control-zoom-in,
+.dark .leaflet-control-zoom-out {
+  background: rgba(20, 29, 24, 0.82) !important;
+  backdrop-filter: blur(10px) !important;
+  color: #f59e0b !important;
+}
+
+.leaflet-control-zoom-in:hover,
+.leaflet-control-zoom-out:hover {
+  background: #f5f5f4 !important;
+}
+
+.dark .leaflet-control-zoom-in:hover,
+.dark .leaflet-control-zoom-out:hover {
   background: #24342c !important;
 }
 

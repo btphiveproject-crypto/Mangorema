@@ -1,0 +1,112 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 500 500" width="100%" height="100%">
+  <defs>
+    <!-- Metallic Copper Gradients -->
+    <linearGradient id="copperGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#f59e0b" />
+      <stop offset="25%" stop-color="#d97706" />
+      <stop offset="60%" stop-color="#b45309" />
+      <stop offset="85%" stop-color="#78350f" />
+      <stop offset="100%" stop-color="#92400e" />
+    </linearGradient>
+
+    <linearGradient id="copperFoil" x1="15%" y1="10%" x2="85%" y2="90%">
+      <stop offset="0%" stop-color="#fde68a" />
+      <stop offset="20%" stop-color="#f59e0b" />
+      <stop offset="45%" stop-color="#b45309" />
+      <stop offset="70%" stop-color="#d97706" />
+      <stop offset="90%" stop-color="#78350f" />
+      <stop offset="100%" stop-color="#fde68a" />
+    </linearGradient>
+
+    <radialGradient id="forestGlow" cx="50%" cy="50%" r="50%">
+      <stop offset="0%" stop-color="#1c3a2a" />
+      <stop offset="70%" stop-color="#121614" />
+      <stop offset="100%" stop-color="#080b09" />
+    </radialGradient>
+
+    <filter id="copperShadow" x="-10%" y="-10%" width="120%" height="120%">
+      <feDropShadow dx="0" dy="4" stdDeviation="6" flood-color="#000000" flood-opacity="0.6" />
+    </filter>
+  </defs>
+
+  <!-- Deep Equatorial Forest Circular Base -->
+  <circle cx="250" cy="250" r="235" fill="url(#forestGlow)" stroke="url(#copperGrad)" stroke-width="4" />
+  
+  <!-- Outer Copper Framing Ring -->
+  <circle cx="250" cy="250" r="216" fill="none" stroke="url(#copperFoil)" stroke-width="6" opacity="0.95" />
+  <circle cx="250" cy="250" r="222" fill="none" stroke="#f59e0b" stroke-width="1.5" stroke-dasharray="4 6" opacity="0.4" />
+
+  <!-- THE CURLED PANGOLIN (Artistic Interlocking Scale System) -->
+  <g id="pangolin-scales" fill="none" stroke="url(#copperFoil)" stroke-linecap="round" stroke-linejoin="round" filter="url(#copperShadow)">
+    
+    <!-- Outer Tail & Body Arc (Perimeter Layer) -->
+    <path d="M 250 44 C 360 44 450 134 450 250 C 450 365 360 456 250 456 C 135 456 44 365 44 250 C 44 145 125 58 226 45" stroke-width="5" />
+
+    <!-- 1st Outer Ring of Scales (Large Protective Dorsal Plates) -->
+    <!-- Top-Right to Bottom-Right -->
+    <path d="M 250 44 C 275 68 290 98 296 130 C 270 120 245 105 226 86 Z" fill="url(#copperGrad)" fill-opacity="0.22" stroke-width="3" />
+    <path d="M 296 130 C 330 115 368 112 402 122 C 382 148 354 168 322 178 C 310 158 301 143 296 130 Z" fill="url(#copperGrad)" fill-opacity="0.25" stroke-width="3" />
+    <path d="M 402 122 C 426 154 440 192 444 232 C 414 230 384 218 360 198 C 378 170 392 145 402 122 Z" fill="url(#copperGrad)" fill-opacity="0.28" stroke-width="3" />
+    <path d="M 444 232 C 446 270 436 308 418 340 C 392 322 372 296 362 264 C 390 258 418 248 444 232 Z" fill="url(#copperGrad)" fill-opacity="0.28" stroke-width="3" />
+    <path d="M 418 340 C 396 376 364 406 326 424 C 318 392 320 358 332 328 C 364 326 394 330 418 340 Z" fill="url(#copperGrad)" fill-opacity="0.28" stroke-width="3" />
+    
+    <!-- Bottom & Tail Wrap Outer Scales -->
+    <path d="M 326 424 C 288 442 244 446 202 438 C 214 406 236 378 266 360 C 286 384 306 406 326 424 Z" fill="url(#copperGrad)" fill-opacity="0.28" stroke-width="3" />
+    <path d="M 202 438 C 160 426 122 400 94 364 C 120 348 150 340 182 342 C 182 376 189 410 202 438 Z" fill="url(#copperGrad)" fill-opacity="0.28" stroke-width="3" />
+    <path d="M 94 364 C 70 330 56 290 54 248 C 84 252 112 266 134 288 C 114 316 100 340 94 364 Z" fill="url(#copperGrad)" fill-opacity="0.28" stroke-width="3" />
+    <path d="M 54 248 C 56 204 72 162 100 128 C 116 156 126 188 128 222 C 100 226 76 235 54 248 Z" fill="url(#copperGrad)" fill-opacity="0.28" stroke-width="3" />
+    <path d="M 100 128 C 132 94 174 72 220 62 C 218 94 204 124 180 146 C 150 134 122 128 100 128 Z" fill="url(#copperGrad)" fill-opacity="0.28" stroke-width="3" />
+
+    <!-- 2nd Inner Spiral Layer of Scales -->
+    <path d="M 226 86 C 248 108 262 136 266 168 C 238 162 212 148 192 128 C 204 112 214 98 226 86 Z" fill="url(#copperGrad)" fill-opacity="0.32" stroke-width="2.75" />
+    <path d="M 266 168 C 294 162 324 168 348 184 C 334 210 312 230 284 240 C 274 214 268 190 266 168 Z" fill="url(#copperGrad)" fill-opacity="0.32" stroke-width="2.75" />
+    <path d="M 348 184 C 368 206 378 236 376 266 C 348 266 322 254 304 234 C 322 214 336 198 348 184 Z" fill="url(#copperGrad)" fill-opacity="0.32" stroke-width="2.75" />
+    <path d="M 376 266 C 372 296 354 322 330 338 C 314 314 308 284 314 256 C 336 256 358 260 376 266 Z" fill="url(#copperGrad)" fill-opacity="0.32" stroke-width="2.75" />
+    <path d="M 330 338 C 304 360 270 370 238 366 C 242 336 256 310 278 292 C 298 310 316 324 330 338 Z" fill="url(#copperGrad)" fill-opacity="0.32" stroke-width="2.75" />
+    <path d="M 238 366 C 206 364 176 348 156 324 C 176 304 204 294 234 296 C 232 322 234 346 238 366 Z" fill="url(#copperGrad)" fill-opacity="0.32" stroke-width="2.75" />
+    <path d="M 156 324 C 142 298 140 266 150 238 C 174 252 192 274 200 302 C 182 308 168 316 156 324 Z" fill="url(#copperGrad)" fill-opacity="0.32" stroke-width="2.75" />
+    <path d="M 150 238 C 158 208 178 184 206 170 C 216 196 216 226 206 252 C 184 244 166 240 150 238 Z" fill="url(#copperGrad)" fill-opacity="0.32" stroke-width="2.75" />
+
+    <!-- 3rd Core Concentric Layer of Curved Scales (Swirling Inward) -->
+    <path d="M 216 176 C 236 172 258 178 274 192 C 262 212 242 226 218 230 C 214 210 214 192 216 176 Z" fill="url(#copperGrad)" fill-opacity="0.38" stroke-width="2.5" />
+    <path d="M 274 192 C 288 208 294 230 290 250 C 270 248 252 236 242 218 C 254 206 264 198 274 192 Z" fill="url(#copperGrad)" fill-opacity="0.38" stroke-width="2.5" />
+    <path d="M 290 250 C 284 270 268 286 248 292 C 242 272 246 250 258 234 C 270 238 282 244 290 250 Z" fill="url(#copperGrad)" fill-opacity="0.38" stroke-width="2.5" />
+    <path d="M 248 292 C 228 294 208 284 196 268 C 210 254 230 248 250 252 C 248 268 248 282 248 292 Z" fill="url(#copperGrad)" fill-opacity="0.38" stroke-width="2.5" />
+    <path d="M 196 268 C 190 250 194 230 206 214 C 220 224 230 240 232 258 C 218 260 206 264 196 268 Z" fill="url(#copperGrad)" fill-opacity="0.38" stroke-width="2.5" />
+
+    <!-- THE PANGOLIN'S HEAD & EYE (Gracefully Tucked into the Spiral Core) -->
+    <path d="M 248 132 C 274 138 298 156 312 180 C 314 184 314 188 308 190 C 298 194 286 194 274 188 C 262 178 254 164 246 150 C 244 144 244 136 248 132 Z" 
+          fill="url(#copperFoil)" fill-opacity="0.85" stroke-width="3" />
+    
+    <!-- Pangolin Snout & Forehead Ridge -->
+    <path d="M 296 158 C 304 166 310 176 312 186 C 304 190 294 188 286 182 Z" fill="url(#copperFoil)" stroke-width="2" />
+    
+    <!-- Pangolin Eye: Keen & Peaceful -->
+    <circle cx="282" cy="168" r="4.5" fill="#080b09" stroke="#fde68a" stroke-width="1.5" />
+
+    <!-- Overlapping Foliage / Forest Texture Accent lines -->
+    <path d="M 230 206 C 244 212 254 224 256 238" stroke-width="2" stroke-linecap="round" />
+    <path d="M 264 240 C 260 254 248 264 234 266" stroke-width="2" stroke-linecap="round" />
+    <path d="M 232 268 C 220 266 210 256 208 244" stroke-width="2" stroke-linecap="round" />
+
+    <!-- Delicate Scale Ribs & Shading Hatching -->
+    <path d="M 334 148 L 354 134" stroke-width="1.8" opacity="0.75" />
+    <path d="M 374 168 L 398 158" stroke-width="1.8" opacity="0.75" />
+    <path d="M 404 204 L 430 200" stroke-width="1.8" opacity="0.75" />
+    <path d="M 410 256 L 434 264" stroke-width="1.8" opacity="0.75" />
+    <path d="M 390 306 L 412 320" stroke-width="1.8" opacity="0.75" />
+    <path d="M 352 350 L 370 372" stroke-width="1.8" opacity="0.75" />
+    <path d="M 298 382 L 310 408" stroke-width="1.8" opacity="0.75" />
+    <path d="M 238 392 L 242 422" stroke-width="1.8" opacity="0.75" />
+    <path d="M 174 380 L 168 408" stroke-width="1.8" opacity="0.75" />
+    <path d="M 124 340 L 108 360" stroke-width="1.8" opacity="0.75" />
+    <path d="M 94 286 L 72 298" stroke-width="1.8" opacity="0.75" />
+    <path d="M 90 224 L 66 224" stroke-width="1.8" opacity="0.75" />
+    <path d="M 112 168 L 92 156" stroke-width="1.8" opacity="0.75" />
+    <path d="M 152 122 L 138 102" stroke-width="1.8" opacity="0.75" />
+    <path d="M 204 94 L 202 70" stroke-width="1.8" opacity="0.75" />
+  </g>
+
+  <!-- Specular Foil Highlights -->
+  <circle cx="282" cy="168" r="1.5" fill="#ffffff" />
+</svg>

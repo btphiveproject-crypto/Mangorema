@@ -1,0 +1,12 @@
+{
+	"appId": "com.mangorema.app",
+	"appName": "MANGOREMA",
+	"webDir": "dist",
+	"android": {
+		"allowMixedContent": false,
+		"backgroundColor": "#080B09"
+	},
+	"server": {
+		"androidScheme": "https"
+	}
+}

@@ -25,7 +25,7 @@ export const RentalModal: React.FC<RentalModalProps> = ({
   const [selectedItem, setSelectedItem] = useState<RentalItem | null>(null);
   const [rentalDays, setRentalDays] = useState(2);
   const [startDate, setStartDate] = useState('2026-11-20');
-  const [depositMethod, setDepositMethod] = useState<'AIRTEL' | 'MOOV'>('AIRTEL');
+  const [depositMethod, setDepositMethod] = useState<'AIRTEL' | 'MOOV' | 'GHETTOPAY'>('AIRTEL');
   const [contactPhone, setContactPhone] = useState('+241 74 12 34 56');
   const [isSuccess, setIsSuccess] = useState(false);
   const [confirmedBooking, setConfirmedBooking] = useState<Booking | null>(null);
@@ -314,7 +314,7 @@ export const RentalModal: React.FC<RentalModalProps> = ({
                   <span className="text-slate-700 dark:text-slate-300 font-semibold">Caution sécurisée (restituée au retour) :</span>
                   <strong className="text-amber-700 dark:text-amber-400 font-mono">{activeItem.depositAmount.toLocaleString('fr-FR')} FCFA</strong>
                 </div>
-                <div className="grid grid-cols-2 gap-2 text-xs">
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 text-xs">
                   <button
                     type="button"
                     onClick={() => setDepositMethod('AIRTEL')}
@@ -337,9 +337,20 @@ export const RentalModal: React.FC<RentalModalProps> = ({
                   >
                     <span>🔵 Moov Money</span>
                   </button>
+                  <button
+                    type="button"
+                    onClick={() => setDepositMethod('GHETTOPAY')}
+                    className={`p-2 rounded-lg border text-left flex items-center gap-1.5 transition ${
+                      depositMethod === 'GHETTOPAY'
+                        ? 'border-emerald-500 bg-emerald-50 dark:bg-emerald-950/40 text-emerald-800 dark:text-emerald-200 font-bold'
+                        : 'border-stone-200 dark:border-white/10 bg-stone-50 dark:bg-slate-950 text-slate-600 dark:text-slate-400'
+                    }`}
+                  >
+                    <span>🟢 GhettoPay</span>
+                  </button>
                 </div>
                 <span className="text-[9px] text-slate-500 dark:text-slate-400 block leading-tight">
-                  🔒 Empreinte bloquée par Mobile Money sans débit immédiat. Restitution automatique lors de l'état des lieux retour.
+                  🔒 Empreinte bloquée par Mobile Money ({depositMethod === 'GHETTOPAY' ? 'GhettoPay · ghettopay.com' : depositMethod}) sans débit immédiat. Restitution automatique lors de l'état des lieux retour.
                 </span>
               </div>
 

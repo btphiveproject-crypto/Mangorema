@@ -1,4 +1,13 @@
 import { ExpeditionEvent, ShuttleService, SafetyIncident, UserProfile, ExpeditionPhoto, ExpertGuide, RentalItem, ExpeditionReview } from '../types';
+import imgMondahCanopy from '../assets/images/hero_mondah_canopy_1795342713775.jpg';
+import imgIvindoDjidji from '../assets/images/ivindo_djidji_waterfalls_1795342714431.jpg';
+import imgPongaraCoast from '../assets/images/pongara_coastal_safari_1795342715267.jpg';
+import imgCristalHighlands from '../assets/images/cristal_misty_highlands_1795342716179.jpg';
+import imgBivouacGear from '../assets/images/bivouac_equatorial_gear_1795342715941.jpg';
+import imgLoangoLagoon from '../assets/images/gabon_loango_lagoon_1795398443917.jpg';
+import imgIvindoFalls from '../assets/images/gabon_ivindo_falls_1795398444066.jpg';
+import imgPongaraEstuary from '../assets/images/gabon_pongara_estuary_1795398444241.jpg';
+import imgCristalMountains from '../assets/images/gabon_cristal_mountains_1795398446159.jpg';
 
 export const INITIAL_EVENTS: ExpeditionEvent[] = [
   {
@@ -14,7 +23,7 @@ export const INITIAL_EVENTS: ExpeditionEvent[] = [
     description: 'Immersion de 24h au cœur de la forêt littorale de la Mondah. Randonnée botanique, observation nocturne et veillée autour du feu de camp.',
     duration: '2 jours / 1 nuit',
     difficulty: 'Modéré',
-    image: 'https://images.unsplash.com/photo-1510312305653-8ed496efae75?w=800&auto=format&fit=crop&q=80',
+    image: imgMondahCanopy,
     elevation: '+180m',
     distance: '9.4 km'
   },
@@ -31,7 +40,7 @@ export const INITIAL_EVENTS: ExpeditionEvent[] = [
     description: 'Trek d\'aventure jusqu\'aux spectaculaires chutes de Djidji. Traversée de rivières, repérage des traces de grands mammifères et campement suspendu.',
     duration: '3 jours / 2 nuits',
     difficulty: 'Expédition',
-    image: 'https://images.unsplash.com/photo-1432405972618-c60b0225b8f9?w=800&auto=format&fit=crop&q=80',
+    image: imgIvindoDjidji,
     elevation: '+420m',
     distance: '24.0 km'
   },
@@ -48,7 +57,7 @@ export const INITIAL_EVENTS: ExpeditionEvent[] = [
     description: 'Départ par bateau-navette depuis Port-Môle, traversée de l\'estuaire puis safari 4x4 jusqu\'au camp de Nyonié. Éléphants sur la plage et tortues luth.',
     duration: '2 jours / 1 nuit',
     difficulty: 'Facile',
-    image: 'https://images.unsplash.com/photo-1507525428034-b723cf961d3e?w=800&auto=format&fit=crop&q=80',
+    image: imgPongaraCoast,
     elevation: '+60m',
     distance: '7.8 km'
   },
@@ -65,7 +74,7 @@ export const INITIAL_EVENTS: ExpeditionEvent[] = [
     description: 'Action citoyenne d\'éco-volontariat pour replanter les palétuviers et sensibiliser à la protection des zones humides côtières.',
     duration: '1 journée',
     difficulty: 'Facile',
-    image: 'https://images.unsplash.com/photo-1542601906990-b4d3fb778b09?w=800&auto=format&fit=crop&q=80',
+    image: imgPongaraCoast,
     elevation: '+15m',
     distance: '4.5 km'
   },
@@ -82,7 +91,7 @@ export const INITIAL_EVENTS: ExpeditionEvent[] = [
     description: 'Ascension des collines brumeuses des Monts de Cristal réputées pour la plus grande richesse en orchidées et plantes rares d\'Afrique centrale.',
     duration: '1 journée intensive',
     difficulty: 'Sportif',
-    image: 'https://images.unsplash.com/photo-1464822759023-fed622ff2c3b?w=800&auto=format&fit=crop&q=80',
+    image: imgCristalHighlands,
     elevation: '+580m',
     distance: '13.2 km'
   }
@@ -198,11 +207,11 @@ export const INITIAL_USER: UserProfile = {
   name: 'Stéphane Akagah',
   role: 'Explorateur Rang 3 · Gabon',
   phone: '+241 74 12 34 56',
-  avatar: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=300&auto=format&fit=crop&q=80',
+  avatar: '/assets/aistudio/Gemini_Generated_Image_vn51dfvn51dfvn51__1__8a19ee16.jpeg',
   totalKm: 148.2,
   totalAscent: 1420,
   stepsCount: 92410,
-  subscription: 'Club Medium (1 000 F)',
+  subscription: 'Gratuit (0 F)',
   badges: [
     { id: 'b1', name: 'Pionnier Mondah', icon: '🌿', desc: 'A parcouru les 4 sentiers de la forêt littorale' },
     { id: 'b2', name: 'Gardien Ivindo', icon: '🌊', desc: 'Bivouac validé aux chutes de Djidji' },
@@ -219,7 +228,7 @@ export const INITIAL_EXPEDITION_PHOTOS: ExpeditionPhoto[] = [
     title: 'Canopée embrumée au lever du jour',
     expeditionName: 'Bivouac & Canopée Mondah',
     parkName: 'Parc National de la Mondah',
-    url: 'https://images.unsplash.com/photo-1510312305653-8ed496efae75?w=800&auto=format&fit=crop&q=80',
+    url: imgMondahCanopy,
     date: '14 Oct 2026',
     caption: 'Premier rayon de soleil filtrant à travers la forêt littorale après une nuit de bivouac sous la tente.',
     isFavorite: true,
@@ -229,7 +238,7 @@ export const INITIAL_EXPEDITION_PHOTOS: ExpeditionPhoto[] = [
     title: 'Grandes Chutes de Djidji en crue',
     expeditionName: 'Expédition Chutes de Djidji',
     parkName: 'Parc National de l\'Ivindo',
-    url: 'https://images.unsplash.com/photo-1432405972618-c60b0225b8f9?w=800&auto=format&fit=crop&q=80',
+    url: imgIvindoDjidji,
     date: '02 Sept 2026',
     caption: 'La puissance brute de l\'Ogooué-Ivindo au cœur de la forêt primaire classée UNESCO.',
     isFavorite: true,
@@ -239,7 +248,7 @@ export const INITIAL_EXPEDITION_PHOTOS: ExpeditionPhoto[] = [
     title: 'Bivouac sauvage et océan Atlantique',
     expeditionName: 'Safari Côtier & Bivouac Nyonié',
     parkName: 'Parc National de Pongara (Nyonié)',
-    url: 'https://images.unsplash.com/photo-1507525428034-b723cf961d3e?w=800&auto=format&fit=crop&q=80',
+    url: imgPongaraCoast,
     date: '18 Août 2026',
     caption: 'Campement posé face aux vagues où les éléphants viennent s\'abreuver au crépuscule.',
     isFavorite: true,
@@ -249,7 +258,7 @@ export const INITIAL_EXPEDITION_PHOTOS: ExpeditionPhoto[] = [
     title: 'Labyrinthe de palétuviers en pirogue',
     expeditionName: 'Restauration Mangrove Wonga',
     parkName: 'Réserve de Wonga-Wongué',
-    url: 'https://images.unsplash.com/photo-1542601906990-b4d3fb778b09?w=800&auto=format&fit=crop&q=80',
+    url: imgPongaraEstuary,
     date: '29 Juil 2026',
     caption: 'Navigation silencieuse au fil de la mangrove avec les écogardes pour le reboisement.',
     isFavorite: false,
@@ -259,7 +268,7 @@ export const INITIAL_EXPEDITION_PHOTOS: ExpeditionPhoto[] = [
     title: 'Crêtes brumeuses et cascades de Kinguélé',
     expeditionName: 'Trek des Crêtes & Kinguélé',
     parkName: 'Monts de Cristal',
-    url: 'https://images.unsplash.com/photo-1464822759023-fed622ff2c3b?w=800&auto=format&fit=crop&q=80',
+    url: imgCristalMountains,
     date: '12 Juin 2026',
     caption: 'Sentier d\'altitude au milieu de la plus grande variété d\'orchidées sauvages d\'Afrique centrale.',
     isFavorite: true,
@@ -269,29 +278,29 @@ export const INITIAL_EXPEDITION_PHOTOS: ExpeditionPhoto[] = [
     title: 'Famille d\'éléphants de forêt au Baï',
     expeditionName: 'Expédition Baï de Langoué',
     parkName: 'Parc National de l\'Ivindo',
-    url: 'https://images.unsplash.com/photo-1557050543-4d5f4e07ef46?w=800&auto=format&fit=crop&q=80',
+    url: imgIvindoFalls,
     date: '20 Mai 2026',
     caption: 'Clairière minérale naturelle où les pachydermes viennent puiser les sels minéraux.',
     isFavorite: false,
   },
   {
     id: 'photo-7',
-    title: 'Feu de camp et veillée sous les étoiles',
+    title: 'Campement lanterne sous la canopée',
     expeditionName: 'Bivouac Nocturne Cap Estérias',
     parkName: 'Cap Estérias',
-    url: 'https://images.unsplash.com/photo-1478131143081-80f7f84ca84d?w=800&auto=format&fit=crop&q=80',
+    url: imgBivouacGear,
     date: '05 Mai 2026',
-    caption: 'Histoires et contes de la forêt partagés autour du feu avec les anciens et les guides.',
+    caption: 'Histoires et contes de la forêt partagés autour du campement avec les anciens et les guides.',
     isFavorite: false,
   },
   {
     id: 'photo-8',
     title: 'Coucher de soleil sur l\'Estuaire du Komo',
     expeditionName: 'Traversée Estuaire Port-Môle',
-    parkName: 'Port-Môle / Pointe Denis',
-    url: 'https://images.unsplash.com/photo-1495616811223-4d98c6e9c869?w=800&auto=format&fit=crop&q=80',
+    parkName: 'Parc National de Loango',
+    url: imgLoangoLagoon,
     date: '15 Avril 2026',
-    caption: 'Retour en pirogue rapide vers Libreville après un week-end d\'exploration.',
+    caption: 'Retour en pirogue rapide face à la lagune après un week-end d\'exploration.',
     isFavorite: false,
   }
 ];
@@ -318,7 +327,7 @@ export const INITIAL_EXPERTS: ExpertGuide[] = [
     title: 'Maître Guide Botaniste & Canopée',
     anpnLicense: 'AGR-ANPN-2021-008',
     verified: true,
-    photo: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=300&auto=format&fit=crop&q=80',
+    photo: '',
     languages: ['Français', 'Fang', 'Anglais'],
     expertiseTags: ['Botanique & Arbres Sacrés', 'Plantes Médicinales', 'Observation Nocturne', 'Survie Bivouac'],
     parks: ['Parc National de la Mondah', 'Cap Estérias', 'Monts de Cristal'],
@@ -337,7 +346,7 @@ export const INITIAL_EXPERTS: ExpertGuide[] = [
     title: 'Pisteur Émérite Éléphants & Grand Gibier',
     anpnLicense: 'AGR-ANPN-2019-014',
     verified: true,
-    photo: 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=300&auto=format&fit=crop&q=80',
+    photo: '',
     languages: ['Français', 'Punu', 'Kota', 'Anglais'],
     expertiseTags: ['Pistage Éléphants de Forêt', 'Lecture des Traces', 'Franchissement Fleuves', 'Immersion Baï'],
     parks: ['Parc National de l\'Ivindo', 'Baï de Langoué', 'Lopé'],
@@ -356,7 +365,7 @@ export const INITIAL_EXPERTS: ExpertGuide[] = [
     title: 'Ornithologue & Spécialiste Tortues Luth',
     anpnLicense: 'AGR-ANPN-2023-089',
     verified: true,
-    photo: 'https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?w=300&auto=format&fit=crop&q=80',
+    photo: '',
     languages: ['Français', 'Myènè', 'Anglais', 'Espagnol'],
     expertiseTags: ['Ornithologie Équatoriale', 'Ponte des Tortues Luth', 'Mangrove en Kayak', 'Écologie Côtière'],
     parks: ['Parc National de Pongara', 'Pointe Denis', 'Nyonié'],
@@ -375,7 +384,7 @@ export const INITIAL_EXPERTS: ExpertGuide[] = [
     title: 'Photographe Animalier & Guide Expé Vidéo',
     anpnLicense: 'AGR-ANPN-2022-045',
     verified: true,
-    photo: 'https://images.unsplash.com/photo-1539571696357-5a69c17a67c6?w=300&auto=format&fit=crop&q=80',
+    photo: '',
     languages: ['Français', 'Fang', 'Anglais'],
     expertiseTags: ['Safari Photo Forêt', 'Affût Canopée', 'Macro Insectes & Orchidées', 'Éclairage Nocturne'],
     parks: ['Monts de Cristal', 'Mondah', 'Ivindo'],
@@ -403,7 +412,7 @@ export const INITIAL_RENTALS: RentalItem[] = [
     depositMethod: 'MOBILE_MONEY',
     availableQuantity: 4,
     totalQuantity: 6,
-    image: 'https://images.unsplash.com/photo-1504280390367-361c6d9f38f4?w=500&auto=format&fit=crop&q=80',
+    image: imgBivouacGear,
     specs: ['Double-toit coutures étanches thermosoudées', 'Moustiquaire fine maillage anti-fourous', 'Poids 3.1 kg ultra-compact', 'Tapis de sol haute densité renforcé'],
     conditionChecklist: ['Toile extérieure et fermetures éclair vérifiées', '3 arceaux aluminium anodisé complets', '12 piquets cornières alu forêt', 'Housse étanche et notice de montage']
   },
@@ -419,7 +428,7 @@ export const INITIAL_RENTALS: RentalItem[] = [
     depositMethod: 'MOBILE_MONEY',
     availableQuantity: 6,
     totalQuantity: 8,
-    image: 'https://images.unsplash.com/photo-1553062407-98eeb64c6a62?w=500&auto=format&fit=crop&q=80',
+    image: imgBivouacGear,
     specs: ['Dos filet suspendu aéré anti-transpiration', 'Housse étanche imperméable jaune ANPN incluse', 'Porte-bâtons et sangles tapis de sol', 'Poids à vide : 2.0 kg'],
     conditionChecklist: ['Sangles d\'épaules et ceinture ventrale intactes', 'Fermetures zippées étanches fonctionnelles', 'Housse de pluie présente dans le compartiment bas']
   },
@@ -435,7 +444,7 @@ export const INITIAL_RENTALS: RentalItem[] = [
     depositMethod: 'EMPREINTE_CB',
     availableQuantity: 3,
     totalQuantity: 4,
-    image: 'https://images.unsplash.com/photo-1485965120184-e220f721d03e?w=500&auto=format&fit=crop&q=80',
+    image: imgMondahCanopy,
     specs: ['Freins à disques hydrauliques Shimano 180mm', 'Pneus Maxxis Tubeless spéciaux boue et latérite', 'Fourche suspendue RockShox 100mm blocable', 'Kit anti-crevaison, pompe et casque inclus'],
     conditionChecklist: ['Pression pneus et usure des crampons contrôlée', 'Freins hydrauliques testés et purgés', 'Dérailleur 1x10 vitesses fluide', 'Casque nettoyé et désinfecté']
   },
@@ -451,7 +460,7 @@ export const INITIAL_RENTALS: RentalItem[] = [
     depositMethod: 'MOBILE_MONEY',
     availableQuantity: 5,
     totalQuantity: 6,
-    image: 'https://images.unsplash.com/photo-1526778548025-fa2f459cd5c1?w=500&auto=format&fit=crop&q=80',
+    image: imgCristalHighlands,
     specs: ['Couverture satellite 100% Gabon (sans aucune 4G)', 'Bouton SOS d\'urgence relié au PC Sécurité ANPN', 'Envoi de SMS satellite vers proches', 'Autonomie 100 heures en suivi 10 min'],
     conditionChecklist: ['Batterie lithium chargée à 100%', 'Écran et coque antichoc sans fissure', 'Cordon tour de cou et mousqueton d\'arrimage', 'Test de synchronisation satellite Iridium OK']
   }
@@ -465,7 +474,7 @@ export const INITIAL_EXPEDITION_REVIEWS: ExpeditionReview[] = [
     authorName: 'Clarisse Obiang',
     rating: 5,
     comment: 'Sentier très bien balisé dans la Mondah, les okoumés géants et la veillée bivouac étaient mémorables.',
-    photoUrl: 'https://images.unsplash.com/photo-1510312305653-8ed496efae75?w=800&auto=format&fit=crop&q=80',
+    photoUrl: imgMondahCanopy,
     createdAtLabel: '10 Nov 2026',
     createdAtMs: 1762732800000,
     isSynced: false,
@@ -477,7 +486,7 @@ export const INITIAL_EXPEDITION_REVIEWS: ExpeditionReview[] = [
     authorName: 'Franck Moussavou',
     rating: 5,
     comment: 'Les chutes de Djidji sont impressionnantes ! Prévoir de bonnes chaussures de trek pour les traversées de rivière.',
-    photoUrl: 'https://images.unsplash.com/photo-1432405972618-c60b0225b8f9?w=800&auto=format&fit=crop&q=80',
+    photoUrl: imgIvindoDjidji,
     createdAtLabel: '04 Nov 2026',
     createdAtMs: 1762214400000,
     isSynced: false,
@@ -489,7 +498,7 @@ export const INITIAL_EXPEDITION_REVIEWS: ExpeditionReview[] = [
     authorName: 'Nadia Bongo-Mba',
     rating: 4,
     comment: 'Traversée depuis Port-Môle fluide et observation d\'éléphants sur la plage au coucher du soleil.',
-    photoUrl: 'https://images.unsplash.com/photo-1507525428034-b723cf961d3e?w=800&auto=format&fit=crop&q=80',
+    photoUrl: imgPongaraCoast,
     createdAtLabel: '29 Oct 2026',
     createdAtMs: 1761696000000,
     isSynced: false,
@@ -512,7 +521,7 @@ export const INITIAL_EXPEDITION_REVIEWS: ExpeditionReview[] = [
     authorName: 'Yannick Koumba',
     rating: 5,
     comment: 'Dénivelé sportif mais vue incroyable sur les brumes des Monts de Cristal et les orchidées sauvages.',
-    photoUrl: 'https://images.unsplash.com/photo-1464822759023-fed622ff2c3b?w=800&auto=format&fit=crop&q=80',
+    photoUrl: imgCristalHighlands,
     createdAtLabel: '12 Oct 2026',
     createdAtMs: 1760227200000,
     isSynced: false,

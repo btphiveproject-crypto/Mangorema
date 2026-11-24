@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { ExpeditionPhoto } from '../types';
-import { X, Sparkles, Check, Heart, Camera, MapPin, Calendar, Trash2, ArrowRight, Eye, Plus, Star } from 'lucide-react';
+import { X, Sparkles, Check, Camera, Plus, Star, AlertCircle } from 'lucide-react';
+import { sanitizeImageUrl } from '../utils/urlSecurity';
 
 interface TopThreePhotosModalProps {
   photos: ExpeditionPhoto[];
@@ -28,10 +29,12 @@ export const TopThreePhotosModal: React.FC<TopThreePhotosModalProps> = ({
   const [newExpedition, setNewExpedition] = useState('Bivouac & Canopée Mondah');
   const [newPark, setNewPark] = useState('Parc National de la Mondah');
   const [uploadedImageData, setUploadedImageData] = useState<string | null>(null);
+  const [formError, setFormError] = useState<string | null>(null);
 
   if (!isOpen) return null;
 
   const toggleSelectPhoto = (photoId: string) => {
+    setFormError(null);
     if (activeSlotTarget !== null) {
       // Direct slot assignment
       const updated = [...selectedTopIds];
@@ -61,33 +64,52 @@ export const TopThreePhotosModal: React.FC<TopThreePhotosModalProps> = ({
   };
 
   const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setFormError(null);
     const file = e.target.files?.[0];
-    if (file) {
-      const reader = new FileReader();
-      reader.onload = (event) => {
-        setUploadedImageData(event.target?.result as string);
-      };
-      reader.readAsDataURL(file);
+    e.target.value = '';
+    if (!file) return;
+
+    if (!/^image\/(png|jpe?g|webp|gif)$/i.test(file.type)) {
+      setFormError('Format non autorisé. Choisissez une image JPG, PNG, WEBP ou GIF.');
+      return;
     }
+    if (file.size > 6 * 1024 * 1024) {
+      setFormError('Image trop volumineuse (maximum 6 Mo).');
+      return;
+    }
+
+    const reader = new FileReader();
+    reader.onload = (event) => {
+      const result = typeof event.target?.result === 'string' ? event.target.result : '';
+      const safeDataUrl = sanitizeImageUrl(result, { allowDataImage: true });
+      if (!safeDataUrl) {
+        setFormError('Fichier image invalide ou corrompu.');
+        return;
+      }
+      setUploadedImageData(safeDataUrl);
+    };
+    reader.readAsDataURL(file);
   };
 
   const handleAddNewExpeditionPhoto = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!uploadedImageData) {
-      alert('Veuillez sélectionner un cliché depuis votre appareil.');
+    setFormError(null);
+    const safeDataUrl = sanitizeImageUrl(uploadedImageData, { allowDataImage: true });
+    if (!safeDataUrl) {
+      setFormError('Veuillez sélectionner un cliché valide depuis votre appareil.');
       return;
     }
     if (!newTitle.trim()) {
-      alert('Veuillez indiquer un titre pour cette photo.');
+      setFormError('Veuillez indiquer un titre pour cette photo.');
       return;
     }
 
     const createdPhoto: ExpeditionPhoto = {
       id: `photo-custom-${Date.now()}`,
-      title: newTitle.trim(),
+      title: newTitle.trim().slice(0, 120),
       expeditionName: newExpedition,
       parkName: newPark,
-      url: uploadedImageData,
+      url: safeDataUrl,
       date: new Date().toLocaleDateString('fr-FR', { day: '2-digit', month: 'short', year: 'numeric' }),
       caption: `Photo capturée lors de l'expédition réalisée : ${newExpedition}.`,
       isFavorite: true,
@@ -176,7 +198,12 @@ export const TopThreePhotosModal: React.FC<TopThreePhotosModalProps> = ({
                 >
                   {photo ? (
                     <>
-                      <img src={photo.url} alt={photo.title} className="w-full h-full object-cover" />
+                      <img
+                        src={sanitizeImageUrl(photo.url, { allowDataImage: true })}
+                        alt={photo.title}
+                        referrerPolicy="no-referrer"
+                        className="w-full h-full object-cover"
+                      />
                       <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent" />
                       
                       {/* Slot Badge */}
@@ -243,9 +270,20 @@ export const TopThreePhotosModal: React.FC<TopThreePhotosModalProps> = ({
               Ajouter une photo prise sur le terrain
             </h4>
 
-            {uploadedImageData ? (
+            {formError && (
+              <div className="bg-red-50 dark:bg-red-950/60 border border-red-500/40 rounded-xl p-2 flex items-center gap-2 text-xs text-red-800 dark:text-red-200">
+                <AlertCircle className="w-4 h-4 text-red-600 dark:text-red-400 shrink-0" />
+                <span className="text-[11px]">{formError}</span>
+              </div>
+            )}
+
+            {sanitizeImageUrl(uploadedImageData, { allowDataImage: true }) ? (
               <div className="relative w-full h-32 rounded-xl overflow-hidden border border-stone-200 dark:border-white/10">
-                <img src={uploadedImageData} alt="Preview" className="w-full h-full object-cover" />
+                <img
+                  src={sanitizeImageUrl(uploadedImageData, { allowDataImage: true })}
+                  alt="Preview"
+                  className="w-full h-full object-cover"
+                />
                 <button
                   type="button"
                   onClick={() => setUploadedImageData(null)}
@@ -257,9 +295,9 @@ export const TopThreePhotosModal: React.FC<TopThreePhotosModalProps> = ({
             ) : (
               <label className="border-2 border-dashed border-stone-300 dark:border-white/20 hover:border-amber-500/50 rounded-xl p-3 flex flex-col items-center justify-center cursor-pointer transition text-xs text-slate-700 dark:text-slate-300 bg-white dark:bg-transparent">
                 <Camera className="w-6 h-6 text-amber-600 dark:text-amber-500 mb-1" />
-                <span className="font-bold text-slate-900 dark:text-white">Sélectionner depuis la galerie ou l'appareil</span>
-                <span className="text-[10px] text-slate-500">JPG, PNG, WEBP</span>
-                <input type="file" accept="image/*" onChange={handleFileUpload} className="hidden" />
+                <span className="font-bold text-slate-900 dark:text-white">Sélectionner depuis la galerie ou l&apos;appareil</span>
+                <span className="text-[10px] text-slate-500">JPG, PNG, WEBP, GIF</span>
+                <input type="file" accept="image/png,image/jpeg,image/webp,image/gif" onChange={handleFileUpload} className="hidden" />
               </label>
             )}
 
@@ -341,8 +379,9 @@ export const TopThreePhotosModal: React.FC<TopThreePhotosModalProps> = ({
                 }`}
               >
                 <img
-                  src={photo.url}
+                  src={sanitizeImageUrl(photo.url, { allowDataImage: true })}
                   alt={photo.title}
+                  referrerPolicy="no-referrer"
                   className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
                 />
                 <div className="absolute inset-0 bg-gradient-to-t from-black/85 via-black/25 to-transparent" />

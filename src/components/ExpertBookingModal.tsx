@@ -26,7 +26,7 @@ export const ExpertBookingModal: React.FC<ExpertBookingModalProps> = ({
   const [selectedPark, setSelectedPark] = useState(expert?.parks[0] || 'Parc National de la Mondah');
   const [groupSize, setGroupSize] = useState(2);
   const [specialNotes, setSpecialNotes] = useState('');
-  const [paymentMethod, setPaymentMethod] = useState<'AIRTEL' | 'MOOV'>('AIRTEL');
+  const [paymentMethod, setPaymentMethod] = useState<'AIRTEL' | 'MOOV' | 'GHETTOPAY'>('AIRTEL');
   const [phone, setPhone] = useState('+241 74 12 34 56');
   const [isSuccess, setIsSuccess] = useState(false);
   const [confirmedRef, setConfirmedRef] = useState('');
@@ -261,7 +261,7 @@ export const ExpertBookingModal: React.FC<ExpertBookingModalProps> = ({
               <label className="text-[11px] text-slate-700 dark:text-slate-300 font-semibold block mb-1.5">
                 Règlement des honoraires du guide :
               </label>
-              <div className="grid grid-cols-2 gap-2">
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
                 <button
                   type="button"
                   onClick={() => setPaymentMethod('AIRTEL')}
@@ -284,7 +284,32 @@ export const ExpertBookingModal: React.FC<ExpertBookingModalProps> = ({
                 >
                   <span>🔵 Moov Money</span>
                 </button>
+                <button
+                  type="button"
+                  onClick={() => setPaymentMethod('GHETTOPAY')}
+                  className={`p-2.5 rounded-xl border flex items-center justify-center gap-2 text-xs font-bold transition ${
+                    paymentMethod === 'GHETTOPAY'
+                      ? 'border-emerald-500 bg-emerald-50 dark:bg-emerald-950/40 text-emerald-800 dark:text-emerald-300 ring-1 ring-emerald-500'
+                      : 'border-stone-200 dark:border-white/10 bg-stone-50 dark:bg-slate-900/60 text-slate-600 dark:text-slate-400'
+                  }`}
+                >
+                  <span>🟢 GhettoPay</span>
+                </button>
               </div>
+              {paymentMethod === 'GHETTOPAY' && (
+                <p className="text-[10px] text-emerald-700 dark:text-emerald-300 mt-1.5">
+                  Wallet FCFA via{' '}
+                  <a
+                    href="https://www.ghettopay.com/"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="underline font-bold"
+                  >
+                    ghettopay.com
+                  </a>{' '}
+                  · Règlement direct in-app.
+                </p>
+              )}
             </div>
 
             {/* Summary & Price */}
