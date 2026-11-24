@@ -573,6 +573,46 @@ service cloud.firestore {
         && data.createdAt is timestamp;
     }
 
+    function isValidSubmittedSite(data, siteId) {
+      return data.keys().hasAll([
+          'id', 'userId', 'authorName', 'siteName', 'siteType',
+          'province', 'difficulty', 'description', 'status',
+          'visibility', 'createdAtLabel', 'createdAt'
+        ])
+        && data.keys().hasOnly([
+          'id', 'userId', 'authorName', 'authorAvatar',
+          'siteName', 'siteType', 'province', 'locationLabel',
+          'difficulty', 'description', 'photoUrl', 'storagePath',
+          'status', 'visibility', 'createdAtLabel', 'createdAt'
+        ])
+        && data.id is string && data.id == siteId && isValidId(data.id)
+        && data.userId is string && isValidId(data.userId)
+        && data.authorName is string && data.authorName.size() >= 1 && data.authorName.size() <= 80
+        && (!('authorAvatar' in data) || (data.authorAvatar is string && data.authorAvatar.size() <= 1000 && (data.authorAvatar == '' || isSafeStoredUrl(data.authorAvatar))))
+        && data.siteName is string && data.siteName.size() >= 2 && data.siteName.size() <= 120
+        && data.siteType in [
+          'PARC_NATIONAL',
+          'RESERVE_NATURELLE',
+          'CASCADE_CHUTE',
+          'PLAGE_LAGUNE',
+          'MONTAGNE_SOMMET',
+          'SENTIER_FORET',
+          'MANGROVE_ZONE_HUMIDE',
+          'ECOLODGE_CAMP',
+          'SITE_CULTUREL'
+        ]
+        && data.province is string && data.province.size() >= 2 && data.province.size() <= 80
+        && (!('locationLabel' in data) || (data.locationLabel is string && data.locationLabel.size() <= 120))
+        && data.difficulty in ['Facile', 'Modéré', 'Difficile']
+        && data.description is string && data.description.size() >= 5 && data.description.size() <= 800
+        && (!('photoUrl' in data) || (data.photoUrl is string && data.photoUrl.size() <= 1000 && isSafeStoredUrl(data.photoUrl)))
+        && (!('storagePath' in data) || (data.storagePath is string && data.storagePath.size() <= 300 && data.storagePath.matches('^site-contributions/' + data.userId + '/[a-zA-Z0-9_.\\-]+$') && !data.storagePath.matches('.*\\.\\..*')))
+        && data.status in ['PENDING_REVIEW', 'PUBLISHED']
+        && data.visibility is string && data.visibility == 'PUBLIC'
+        && data.createdAtLabel is string && data.createdAtLabel.size() >= 1 && data.createdAtLabel.size() <= 64
+        && data.createdAt is timestamp;
+    }
+
     function isValidDirectChat(data, chatId) {
       return data.keys().hasAll([
           'id', 'participantUids', 'participantAId', 'participantBId',
@@ -1059,6 +1099,22 @@ service cloud.firestore {
 
       allow update: if false;
       allow delete: if isValidId(contributionId) && isSignedIn() && existing().userId == request.auth.uid;
+    }
+
+    // Collection: User-Submitted Sites with Site Type (/submitted_sites)
+    match /submitted_sites/{siteId} {
+      allow get: if isValidId(siteId) && isSignedIn() && (existing().visibility == 'PUBLIC' || existing().userId == request.auth.uid);
+      allow list: if isSignedIn() && (existing().visibility == 'PUBLIC' || existing().userId == request.auth.uid);
+
+      allow create: if isValidId(siteId)
+        && isSignedIn()
+        && isValidSubmittedSite(incoming(), siteId)
+        && incoming().userId == request.auth.uid
+        && incoming().createdAt == request.time
+        && userExists(request.auth.uid);
+
+      allow update: if false;
+      allow delete: if isValidId(siteId) && isSignedIn() && existing().userId == request.auth.uid;
     }
 
     // Collection: 1-to-1 Private Chats (Strict Participant Containment)

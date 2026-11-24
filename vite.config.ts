@@ -18,6 +18,7 @@ export default defineConfig(() => {
           'favicon.ico',
           'apple-touch-icon.png',
           'icon.svg',
+          'logo-badge.png',
           'logo.jpg',
           'pwa-192x192.png',
           'pwa-512x512.png',
@@ -60,7 +61,7 @@ export default defineConfig(() => {
         workbox: {
           globPatterns: ['**/*.{js,css,html,ico,png,svg,jpg,webp,woff,woff2}'],
           maximumFileSizeToCacheInBytes: 6 * 1024 * 1024,
-          navigateFallbackDenylist: [/^\/api\//, /^\/ws\//],
+          navigateFallbackDenylist: [/^\/api\//, /^\/ws\//, /^\/__\//],
           runtimeCaching: [
             {
               urlPattern: /^https:\/\/fonts\.googleapis\.com\/.*/i,

@@ -89,24 +89,24 @@ export const HomeView: React.FC<HomeViewProps> = ({
   const totalChallenges = ECO_CHALLENGES_CATALOG.length;
 
   return (
-    <div className="space-y-8 p-4 sm:p-6 pb-24 lg:pb-12">
+    <div className="space-y-6 sm:space-y-8 px-3.5 py-4 sm:p-6 pb-24 lg:pb-12">
       {/* Top Architectural Row: Photographic Hero + Live Park Weather */}
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-5 items-stretch">
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-4 sm:gap-5 items-stretch">
         {/* Cinematic Photographic Hero (7 cols on desktop) */}
-        <div className="lg:col-span-7 flex flex-col justify-between gap-4">
-          <div className="relative rounded-3xl overflow-hidden border border-stone-200 dark:border-white/10 shadow-sm min-h-[280px] sm:min-h-[320px] flex flex-col justify-end flex-1 bg-[#080B09]">
+        <div className="lg:col-span-7 flex flex-col justify-between gap-3.5 sm:gap-4">
+          <div className="relative rounded-3xl overflow-hidden border border-stone-200 dark:border-white/10 shadow-sm min-h-[245px] sm:min-h-[320px] flex flex-col justify-end flex-1 bg-[#080B09]">
             <img
               src={imgHeroMondah}
               alt="Canopée du Parc National de la Mondah, Gabon"
               referrerPolicy="no-referrer"
               className="absolute inset-0 w-full h-full object-cover"
             />
-            <div className="absolute inset-0 bg-gradient-to-t from-[#080B09] via-[#080B09]/65 to-[#080B09]/25" />
+            <div className="absolute inset-0 bg-gradient-to-t from-[#080B09] via-[#080B09]/65 to-[#080B09]/20" />
 
-            <div className="relative z-10 p-5 sm:p-7 space-y-4">
+            <div className="relative z-10 p-4 sm:p-7 space-y-3 sm:space-y-4">
               {/* Quiet unboxed kicker + Brand emblem */}
               <div className="flex items-center justify-between gap-3">
-                <p className="text-xs font-semibold text-amber-300 tracking-wide">
+                <p className="text-[11px] sm:text-xs font-semibold text-amber-300 tracking-wide truncate">
                   {t.home.heroBadge} <span aria-hidden="true">·</span> {t.header.tagline}
                 </p>
                 <div className="w-11 h-11 rounded-2xl overflow-hidden border border-amber-400/50 bg-[#080B09] shrink-0 hidden sm:flex items-center justify-center">
@@ -118,21 +118,21 @@ export const HomeView: React.FC<HomeViewProps> = ({
                 </div>
               </div>
 
-              <div className="space-y-2 max-w-xl">
-                <h1 className="font-serif-display text-3xl sm:text-4xl font-normal leading-[1.1] text-white text-balance">
+              <div className="space-y-1.5 sm:space-y-2 max-w-xl">
+                <h1 className="font-serif-display text-2xl sm:text-4xl font-normal leading-[1.12] text-white text-balance">
                   {t.home.heroTitle}
                 </h1>
-                <p className="text-sm text-stone-200 leading-relaxed max-w-lg">
+                <p className="text-xs sm:text-sm text-stone-200 leading-relaxed max-w-lg line-clamp-2 sm:line-clamp-none">
                   {t.home.heroSubtitle}
                 </p>
               </div>
 
               {/* Primary Hero Actions */}
-              <div className="flex flex-wrap items-center gap-2.5 pt-1">
+              <div className="flex flex-wrap items-center gap-2 pt-0.5">
                 <button
                   type="button"
                   onClick={() => onNavigateTab('sorties')}
-                  className="min-h-[44px] px-5 py-2.5 copper-gradient text-slate-950 font-extrabold text-xs rounded-xl flex items-center gap-2 shadow-sm hover:brightness-105 active:scale-95 transition whitespace-nowrap"
+                  className="min-h-[42px] sm:min-h-[44px] px-4 sm:px-5 py-2 copper-gradient text-slate-950 font-extrabold text-xs rounded-xl flex items-center gap-1.5 sm:gap-2 shadow-sm hover:brightness-105 active:scale-95 transition whitespace-nowrap"
                 >
                   <Compass className="w-4 h-4 shrink-0" />
                   <span>{t.home.poleExpeditions}</span>
@@ -141,15 +141,15 @@ export const HomeView: React.FC<HomeViewProps> = ({
                 <button
                   type="button"
                   onClick={() => onNavigateTab('explorer')}
-                  className="min-h-[44px] px-4 py-2.5 bg-white/15 hover:bg-white/25 backdrop-blur-md border border-white/25 text-white font-bold text-xs rounded-xl flex items-center gap-2 active:scale-95 transition whitespace-nowrap"
+                  className="min-h-[42px] sm:min-h-[44px] px-3.5 sm:px-4 py-2 bg-white/15 hover:bg-white/25 backdrop-blur-md border border-white/25 text-white font-bold text-xs rounded-xl flex items-center gap-1.5 sm:gap-2 active:scale-95 transition whitespace-nowrap"
                 >
                   <MapPin className="w-3.5 h-3.5 text-amber-300 shrink-0" />
                   <span>{t.nav.explorer}</span>
                 </button>
               </div>
 
-              {/* Tabular Telemetry Strip */}
-              <div className="grid grid-cols-3 gap-4 pt-3 border-t border-white/15 text-white">
+              {/* Tabular Telemetry Strip (hidden on narrow mobile for calmer visual breathing room) */}
+              <div className="hidden sm:grid grid-cols-3 gap-4 pt-3 border-t border-white/15 text-white">
                 <div>
                   <span className="font-mono font-bold text-base sm:text-lg text-amber-300 block tabular-nums">
                     1 420+
@@ -172,15 +172,15 @@ export const HomeView: React.FC<HomeViewProps> = ({
             </div>
           </div>
 
-          {/* 4-Action Quick Strip */}
-          <div className="grid grid-cols-4 gap-2.5">
+          {/* 4-Action Quick Strip (horizontal scrollable rail on mobile, 4-col grid on sm+) */}
+          <div className="flex sm:grid sm:grid-cols-4 gap-2 sm:gap-2.5 overflow-x-auto no-scrollbar pb-0.5">
             <button
               type="button"
               onClick={onOpenGPSTracker}
-              className="min-h-[56px] glass-card border border-white/60 dark:border-white/12 hover:border-amber-500/55 rounded-2xl p-2.5 flex flex-col sm:flex-row items-center justify-center gap-2 text-center transition active:scale-95"
+              className="min-h-[44px] sm:min-h-[54px] glass-card border border-white/60 dark:border-white/12 hover:border-amber-500/55 rounded-2xl px-3.5 py-2 sm:p-2.5 flex items-center justify-center gap-2 text-center transition active:scale-95 shrink-0"
             >
               <Navigation className="w-4 h-4 text-amber-600 dark:text-amber-400 shrink-0" />
-              <span className="text-[11px] sm:text-xs font-bold text-slate-900 dark:text-slate-100 truncate">
+              <span className="text-xs font-bold text-slate-900 dark:text-slate-100 whitespace-nowrap">
                 {t.home.quickGps}
               </span>
             </button>
@@ -188,10 +188,10 @@ export const HomeView: React.FC<HomeViewProps> = ({
             <button
               type="button"
               onClick={onOpenShuttles}
-              className="min-h-[56px] glass-card border border-white/60 dark:border-white/12 hover:border-emerald-500/55 rounded-2xl p-2.5 flex flex-col sm:flex-row items-center justify-center gap-2 text-center transition active:scale-95"
+              className="min-h-[44px] sm:min-h-[54px] glass-card border border-white/60 dark:border-white/12 hover:border-emerald-500/55 rounded-2xl px-3.5 py-2 sm:p-2.5 flex items-center justify-center gap-2 text-center transition active:scale-95 shrink-0"
             >
               <Bus className="w-4 h-4 text-emerald-600 dark:text-emerald-400 shrink-0" />
-              <span className="text-[11px] sm:text-xs font-bold text-slate-900 dark:text-slate-100 truncate">
+              <span className="text-xs font-bold text-slate-900 dark:text-slate-100 whitespace-nowrap">
                 {t.home.quickShuttles}
               </span>
             </button>
@@ -199,10 +199,10 @@ export const HomeView: React.FC<HomeViewProps> = ({
             <button
               type="button"
               onClick={onOpenChecklist}
-              className="min-h-[56px] glass-card border border-white/60 dark:border-white/12 hover:border-amber-500/55 rounded-2xl p-2.5 flex flex-col sm:flex-row items-center justify-center gap-2 text-center transition active:scale-95"
+              className="min-h-[44px] sm:min-h-[54px] glass-card border border-white/60 dark:border-white/12 hover:border-amber-500/55 rounded-2xl px-3.5 py-2 sm:p-2.5 flex items-center justify-center gap-2 text-center transition active:scale-95 shrink-0"
             >
               <Sparkles className="w-4 h-4 text-amber-600 dark:text-amber-400 shrink-0" />
-              <span className="text-[11px] sm:text-xs font-bold text-slate-900 dark:text-slate-100 truncate">
+              <span className="text-xs font-bold text-slate-900 dark:text-slate-100 whitespace-nowrap">
                 {t.home.quickChecklist}
               </span>
             </button>
@@ -210,10 +210,10 @@ export const HomeView: React.FC<HomeViewProps> = ({
             <button
               type="button"
               onClick={onOpenSOS}
-              className="min-h-[56px] bg-red-50 dark:bg-red-950/35 border border-red-200 dark:border-red-500/40 hover:border-red-500 rounded-2xl p-2.5 flex flex-col sm:flex-row items-center justify-center gap-2 text-center transition active:scale-95"
+              className="min-h-[44px] sm:min-h-[54px] bg-red-50 dark:bg-red-950/35 border border-red-200 dark:border-red-500/40 hover:border-red-500 rounded-2xl px-3.5 py-2 sm:p-2.5 flex items-center justify-center gap-2 text-center transition active:scale-95 shrink-0"
             >
               <ShieldAlert className="w-4 h-4 text-red-600 dark:text-red-400 shrink-0" />
-              <span className="text-[11px] sm:text-xs font-bold text-red-700 dark:text-red-300 truncate">
+              <span className="text-xs font-bold text-red-700 dark:text-red-300 whitespace-nowrap">
                 {t.home.quickSos}
               </span>
             </button>
@@ -226,22 +226,22 @@ export const HomeView: React.FC<HomeViewProps> = ({
         </div>
       </div>
 
-      {/* Pôles d'Activités Section (clean un-nested architectural cards) */}
-      <section className="space-y-3">
+      {/* Pôles d'Activités Section (clean horizontal strip on mobile, 4 cols on sm+) */}
+      <section className="space-y-2.5">
         <div className="flex items-baseline justify-between gap-2">
-          <h2 className="font-serif-display text-lg sm:text-xl font-bold text-slate-900 dark:text-white">
+          <h2 className="font-serif-display text-base sm:text-xl font-bold text-slate-900 dark:text-white">
             {t.home.universeTitle}
           </h2>
-          <span className="text-xs text-amber-700 dark:text-amber-400 font-semibold">
+          <span className="text-[11px] sm:text-xs text-amber-700 dark:text-amber-400 font-semibold truncate">
             {t.home.universeSubtitle}
           </span>
         </div>
 
-        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+        <div className="flex sm:grid sm:grid-cols-4 gap-2.5 sm:gap-3 overflow-x-auto no-scrollbar pb-0.5">
           <button
             type="button"
             onClick={() => onNavigateTab('sorties')}
-            className="group glass-card border border-white/60 dark:border-white/12 hover:border-amber-500/55 rounded-2xl p-3.5 flex items-center gap-3 text-start transition active:scale-[0.98]"
+            className="group min-w-[155px] sm:min-w-0 glass-card border border-white/60 dark:border-white/12 hover:border-amber-500/55 rounded-2xl p-3 sm:p-3.5 flex items-center gap-2.5 sm:gap-3 text-start transition active:scale-[0.98] shrink-0"
           >
             <CategoryIcon
               category="expeditions"
@@ -252,7 +252,7 @@ export const HomeView: React.FC<HomeViewProps> = ({
               <span className="text-xs font-bold text-slate-900 dark:text-white block truncate">
                 {t.home.poleExpeditions}
               </span>
-              <span className="text-[11px] text-slate-600 dark:text-slate-400 block truncate">
+              <span className="hidden sm:block text-[11px] text-slate-600 dark:text-slate-400 truncate">
                 {t.home.hubSubExpeditions}
               </span>
             </div>
@@ -261,7 +261,7 @@ export const HomeView: React.FC<HomeViewProps> = ({
           <button
             type="button"
             onClick={onOpenShuttles}
-            className="group glass-card border border-white/60 dark:border-white/12 hover:border-amber-500/55 rounded-2xl p-3.5 flex items-center gap-3 text-start transition active:scale-[0.98]"
+            className="group min-w-[155px] sm:min-w-0 glass-card border border-white/60 dark:border-white/12 hover:border-amber-500/55 rounded-2xl p-3 sm:p-3.5 flex items-center gap-2.5 sm:gap-3 text-start transition active:scale-[0.98] shrink-0"
           >
             <CategoryIcon
               category="navettes"
@@ -272,7 +272,7 @@ export const HomeView: React.FC<HomeViewProps> = ({
               <span className="text-xs font-bold text-slate-900 dark:text-white block truncate">
                 {t.home.poleShuttles}
               </span>
-              <span className="text-[11px] text-slate-600 dark:text-slate-400 block truncate">
+              <span className="hidden sm:block text-[11px] text-slate-600 dark:text-slate-400 truncate">
                 {t.home.hubSubShuttles}
               </span>
             </div>
@@ -281,7 +281,7 @@ export const HomeView: React.FC<HomeViewProps> = ({
           <button
             type="button"
             onClick={() => onNavigateTab('equipement')}
-            className="group glass-card border border-white/60 dark:border-white/12 hover:border-amber-500/55 rounded-2xl p-3.5 flex items-center gap-3 text-start transition active:scale-[0.98]"
+            className="group min-w-[155px] sm:min-w-0 glass-card border border-white/60 dark:border-white/12 hover:border-amber-500/55 rounded-2xl p-3 sm:p-3.5 flex items-center gap-2.5 sm:gap-3 text-start transition active:scale-[0.98] shrink-0"
           >
             <CategoryIcon
               category="location"
@@ -292,7 +292,7 @@ export const HomeView: React.FC<HomeViewProps> = ({
               <span className="text-xs font-bold text-slate-900 dark:text-white block truncate">
                 {t.nav.equipement}
               </span>
-              <span className="text-[11px] text-slate-600 dark:text-slate-400 block truncate">
+              <span className="hidden sm:block text-[11px] text-slate-600 dark:text-slate-400 truncate">
                 {t.home.hubSubGear}
               </span>
             </div>
@@ -301,7 +301,7 @@ export const HomeView: React.FC<HomeViewProps> = ({
           <button
             type="button"
             onClick={() => onNavigateTab('explorer')}
-            className="group glass-card border border-white/60 dark:border-white/12 hover:border-amber-500/55 rounded-2xl p-3.5 flex items-center gap-3 text-start transition active:scale-[0.98]"
+            className="group min-w-[155px] sm:min-w-0 glass-card border border-white/60 dark:border-white/12 hover:border-amber-500/55 rounded-2xl p-3 sm:p-3.5 flex items-center gap-2.5 sm:gap-3 text-start transition active:scale-[0.98] shrink-0"
           >
             <CategoryIcon
               category="guides"
@@ -312,7 +312,7 @@ export const HomeView: React.FC<HomeViewProps> = ({
               <span className="text-xs font-bold text-slate-900 dark:text-white block truncate">
                 {t.home.poleGuides}
               </span>
-              <span className="text-[11px] text-slate-600 dark:text-slate-400 block truncate">
+              <span className="hidden sm:block text-[11px] text-slate-600 dark:text-slate-400 truncate">
                 {t.home.hubSubGuides}
               </span>
             </div>
@@ -330,10 +330,10 @@ export const HomeView: React.FC<HomeViewProps> = ({
         onUpgradeAdFree={onUpgradeAdFree}
       />
 
-      {/* Featured Expeditions Grid (3 columns on desktop) */}
-      <section className="space-y-3.5">
+      {/* Featured Expeditions Carousel on mobile / 3 columns on desktop */}
+      <section className="space-y-3">
         <div className="flex items-center justify-between gap-2">
-          <h2 className="font-serif-display text-lg sm:text-xl font-bold text-slate-900 dark:text-white">
+          <h2 className="font-serif-display text-base sm:text-xl font-bold text-slate-900 dark:text-white">
             {t.home.featuredTitle}
           </h2>
           <button
@@ -346,7 +346,7 @@ export const HomeView: React.FC<HomeViewProps> = ({
           </button>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <div className="flex md:grid md:grid-cols-3 gap-3.5 sm:gap-4 overflow-x-auto snap-x snap-mandatory no-scrollbar pb-1">
           {events.slice(0, 3).map((evt) => {
             const safeImg = sanitizeImageUrl(evt.image, { allowDataImage: true });
             const isBroken = brokenEventImages[evt.id];
@@ -354,7 +354,7 @@ export const HomeView: React.FC<HomeViewProps> = ({
             return (
               <article
                 key={evt.id}
-                className="glass-card border border-white/60 dark:border-white/12 rounded-2xl overflow-hidden hover:border-amber-500/50 transition flex flex-col"
+                className="w-[80vw] max-w-[300px] md:w-auto md:max-w-none shrink-0 snap-start glass-card border border-white/60 dark:border-white/12 rounded-2xl overflow-hidden hover:border-amber-500/50 transition flex flex-col"
               >
                 <div className="relative aspect-[16/10] bg-slate-900 overflow-hidden">
                   {safeImg && !isBroken ? (
@@ -615,17 +615,17 @@ export const HomeView: React.FC<HomeViewProps> = ({
       </div>
 
       {/* Gabon Photo Gallery Showcase Strip */}
-      <section className="glass-card border border-white/60 dark:border-white/12 rounded-3xl p-5 space-y-4">
-        <div className="flex flex-wrap items-center justify-between gap-3">
+      <section className="glass-card border border-white/60 dark:border-white/12 rounded-3xl p-4 sm:p-5 space-y-3.5 sm:space-y-4">
+        <div className="flex items-center justify-between gap-2.5">
           <div className="flex items-center gap-2.5 min-w-0">
             <div className="w-9 h-9 rounded-xl bg-amber-500/15 border border-amber-500/35 text-amber-700 dark:text-amber-400 flex items-center justify-center shrink-0">
               <Camera className="w-4 h-4" />
             </div>
             <div className="min-w-0">
-              <h2 className="font-serif-display text-lg font-bold text-slate-900 dark:text-white truncate">
+              <h2 className="font-serif-display text-base sm:text-lg font-bold text-slate-900 dark:text-white truncate">
                 {t.home.galleryTitle}
               </h2>
-              <p className="text-xs text-slate-600 dark:text-slate-400 truncate">
+              <p className="text-[11px] sm:text-xs text-slate-600 dark:text-slate-400 truncate">
                 {t.home.gallerySubtitle}
               </p>
             </div>
@@ -634,14 +634,14 @@ export const HomeView: React.FC<HomeViewProps> = ({
           <button
             type="button"
             onClick={() => onNavigateTab('galerie')}
-            className="min-h-[40px] px-4 py-2 copper-gradient text-slate-950 font-black text-xs rounded-xl flex items-center gap-1.5 shadow-sm active:scale-95 transition whitespace-nowrap shrink-0"
+            className="min-h-[38px] sm:min-h-[40px] px-3 sm:px-4 py-1.5 sm:py-2 copper-gradient text-slate-950 font-black text-xs rounded-xl flex items-center gap-1.5 shadow-sm active:scale-95 transition whitespace-nowrap shrink-0"
           >
             <span>{t.home.galleryCta}</span>
             <ArrowRight className="w-3.5 h-3.5 rtl:rotate-180" />
           </button>
         </div>
 
-        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+        <div className="flex sm:grid sm:grid-cols-4 gap-3 overflow-x-auto snap-x snap-mandatory no-scrollbar pb-0.5">
           {(photos.length > 0
             ? photos.slice(0, 4).map((p) => ({
                 id: p.id,
@@ -660,7 +660,7 @@ export const HomeView: React.FC<HomeViewProps> = ({
               key={item.id}
               type="button"
               onClick={() => onNavigateTab('galerie')}
-              className="group relative aspect-[4/3] rounded-2xl overflow-hidden border border-white/50 dark:border-white/12 bg-slate-900 text-start"
+              className="group relative w-[56vw] max-w-[200px] sm:w-auto sm:max-w-none shrink-0 snap-start aspect-[4/3] rounded-2xl overflow-hidden border border-white/50 dark:border-white/12 bg-slate-900 text-start"
             >
               {item.url && (
                 <img

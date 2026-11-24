@@ -25,6 +25,7 @@ import {
   HardDrive,
   MapPin,
   Camera,
+  ChevronDown,
 } from 'lucide-react';
 import { CategoryIcon } from '../CategoryIcon';
 import { ExpeditionCalendar } from '../ExpeditionCalendar';
@@ -122,6 +123,7 @@ export const ExplorerView: React.FC<ExplorerViewProps> = ({
   const [offlineFeedback, setOfflineFeedback] = useState<string | null>(null);
   const [localStorageKB, setLocalStorageKB] = useState<number>(() => getLocalStorageMapKB());
   const [brokenExpertPhotos, setBrokenExpertPhotos] = useState<Record<string, boolean>>({});
+  const [showMobileOfflineDetails, setShowMobileOfflineDetails] = useState<boolean>(false);
 
   const refreshOfflineState = useCallback(() => {
     setOfflineMaps(getStoredOfflineMaps());
@@ -212,34 +214,34 @@ export const ExplorerView: React.FC<ExplorerViewProps> = ({
   const downloadedList = Object.values(offlineMaps);
 
   return (
-    <div className="space-y-6 p-4 sm:p-6 pb-24 lg:pb-12">
+    <div className="space-y-4 sm:space-y-6 px-3.5 py-4 sm:p-6 pb-24 lg:pb-12">
       {/* Header + Mode Hors-Ligne & Tracker Actions */}
-      <div className="flex flex-wrap items-center justify-between gap-3">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 sm:gap-3">
         <div className="min-w-0">
-          <h2 className="font-serif-display text-2xl sm:text-3xl text-slate-900 dark:text-white font-bold flex items-center gap-2.5 tracking-tight">
-            <Compass className="w-6 h-6 text-amber-600 dark:text-amber-500 shrink-0" />
+          <h2 className="font-serif-display text-xl sm:text-3xl text-slate-900 dark:text-white font-bold flex items-center gap-2 tracking-tight">
+            <Compass className="w-5 h-5 sm:w-6 sm:h-6 text-amber-600 dark:text-amber-500 shrink-0" />
             <span className="truncate">{t.explorer.title}</span>
           </h2>
-          <p className="text-xs sm:text-sm text-slate-600 dark:text-slate-400 mt-0.5">{t.explorer.subtitle}</p>
+          <p className="hidden sm:block text-sm text-slate-600 dark:text-slate-400 mt-0.5">{t.explorer.subtitle}</p>
         </div>
 
-        <div className="flex items-center gap-2 flex-wrap">
+        <div className="flex items-center gap-2 overflow-x-auto no-scrollbar pb-0.5 sm:flex-wrap sm:pb-0">
           {onToggleActivityLocations && (
             <button
               type="button"
               onClick={onToggleActivityLocations}
               aria-pressed={showActivityLocations}
-              className={`min-h-[44px] px-3.5 py-2 font-bold text-xs rounded-xl flex items-center gap-2 border active:scale-95 transition whitespace-nowrap ${
+              className={`min-h-[40px] sm:min-h-[44px] px-3 sm:px-3.5 py-1.5 sm:py-2 font-bold text-xs rounded-xl flex items-center gap-1.5 sm:gap-2 border active:scale-95 transition whitespace-nowrap shrink-0 ${
                 showActivityLocations
                   ? 'bg-amber-500/15 text-amber-800 dark:text-amber-300 border-amber-500/50 shadow-sm'
                   : 'glass-card text-slate-800 dark:text-slate-200 border-white/60 dark:border-white/12 hover:border-amber-500/45'
               }`}
             >
-              <MapPin className="w-4 h-4" />
+              <MapPin className="w-3.5 h-3.5 sm:w-4 sm:h-4 shrink-0" />
               <span>
                 {showActivityLocations
-                  ? `Localisations activités (${events.filter((e) => e.locationEnabled !== false).length})`
-                  : 'Activer localisations'}
+                  ? `Repères (${events.filter((e) => e.locationEnabled !== false).length})`
+                  : 'Repères OFF'}
               </span>
             </button>
           )}
@@ -248,13 +250,13 @@ export const ExplorerView: React.FC<ExplorerViewProps> = ({
             type="button"
             onClick={handleToggleOfflineMode}
             aria-pressed={offlineMode}
-            className={`min-h-[44px] px-3.5 py-2 font-bold text-xs rounded-xl flex items-center gap-2 border active:scale-95 transition whitespace-nowrap ${
+            className={`min-h-[40px] sm:min-h-[44px] px-3 sm:px-3.5 py-1.5 sm:py-2 font-bold text-xs rounded-xl flex items-center gap-1.5 sm:gap-2 border active:scale-95 transition whitespace-nowrap shrink-0 ${
               offlineMode
                 ? 'bg-emerald-600 text-white border-emerald-500 shadow-sm'
                 : 'glass-card text-slate-800 dark:text-slate-100 border-white/60 dark:border-white/12 hover:border-emerald-500/50'
             }`}
           >
-            <WifiOff className="w-4 h-4" />
+            <WifiOff className="w-3.5 h-3.5 sm:w-4 sm:h-4 shrink-0" />
             <span>{offlineMode ? t.explorer.offlineModeActive : t.explorer.offlineModeBtn}</span>
             <span
               className={`font-mono tabular-nums text-[11px] ${
@@ -268,9 +270,9 @@ export const ExplorerView: React.FC<ExplorerViewProps> = ({
           <button
             type="button"
             onClick={onOpenGPSTracker}
-            className="min-h-[44px] px-4 py-2 copper-gradient text-slate-950 font-extrabold text-xs rounded-xl flex items-center gap-1.5 shadow-sm active:scale-95 transition whitespace-nowrap"
+            className="min-h-[40px] sm:min-h-[44px] px-3.5 sm:px-4 py-1.5 sm:py-2 copper-gradient text-slate-950 font-extrabold text-xs rounded-xl flex items-center gap-1.5 shadow-sm active:scale-95 transition whitespace-nowrap shrink-0"
           >
-            <Navigation className="w-4 h-4 fill-current" />
+            <Navigation className="w-3.5 h-3.5 sm:w-4 sm:h-4 fill-current shrink-0" />
             <span>{t.explorer.trackerBtn}</span>
           </button>
         </div>
@@ -278,16 +280,16 @@ export const ExplorerView: React.FC<ExplorerViewProps> = ({
 
       {/* Offline Park Maps Quick Control & LocalStorage Consultation Bar */}
       <div
-        className={`rounded-2xl p-4 border transition space-y-3 glass-card ${
+        className={`rounded-2xl p-3 sm:p-4 border transition space-y-2.5 sm:space-y-3 glass-card ${
           offlineMode
             ? 'border-emerald-500/50'
             : 'border-white/60 dark:border-white/12'
         }`}
       >
-        <div className="flex flex-wrap items-center justify-between gap-3">
-          <div className="flex items-center gap-3 min-w-0">
+        <div className="flex items-center justify-between gap-2.5">
+          <div className="flex items-center gap-2.5 sm:gap-3 min-w-0">
             <div
-              className={`w-10 h-10 rounded-xl flex items-center justify-center shrink-0 ${
+              className={`w-8 h-8 sm:w-10 sm:h-10 rounded-xl flex items-center justify-center shrink-0 ${
                 offlineMode
                   ? 'bg-emerald-600 text-white'
                   : 'bg-amber-500/15 text-amber-700 dark:text-amber-400'
@@ -296,28 +298,47 @@ export const ExplorerView: React.FC<ExplorerViewProps> = ({
               <HardDrive className="w-4 h-4" />
             </div>
             <div className="min-w-0">
-              <div className="flex items-center gap-2 flex-wrap">
-                <h3 className="font-bold text-sm text-slate-900 dark:text-white">
+              <div className="flex items-center gap-1.5 flex-wrap">
+                <h3 className="font-bold text-xs sm:text-sm text-slate-900 dark:text-white truncate">
                   {t.explorer.offlineBarTitle}
                 </h3>
                 <span className="text-[11px] font-mono tabular-nums text-emerald-700 dark:text-emerald-400 font-semibold">
-                  · {downloadedCount} {t.explorer.offlineSavedCount} · {localStorageKB} Ko
+                  · {downloadedCount}/{OFFLINE_MAP_PACKAGES.length}
+                  <span className="hidden sm:inline"> {t.explorer.offlineSavedCount} · {localStorageKB} Ko</span>
                 </span>
               </div>
-              <p className="text-xs text-slate-600 dark:text-slate-400">
+              <p className="hidden sm:block text-xs text-slate-600 dark:text-slate-400">
                 {t.explorer.offlineBarHint}
               </p>
             </div>
           </div>
 
-          <button
-            type="button"
-            onClick={() => setIsOfflineModalOpen(true)}
-            className="min-h-[44px] px-3.5 py-2 copper-gradient text-slate-950 font-black rounded-xl text-xs flex items-center gap-1.5 shadow-sm active:scale-95 transition shrink-0"
-          >
-            <Download className="w-4 h-4" />
-            <span>{t.explorer.offlineManageBtn}</span>
-          </button>
+          <div className="flex items-center gap-1.5 shrink-0">
+            {downloadedList.length > 0 && (
+              <button
+                type="button"
+                onClick={() => setShowMobileOfflineDetails((v) => !v)}
+                aria-expanded={showMobileOfflineDetails}
+                aria-label="Afficher les cartes hors-ligne"
+                className="sm:hidden min-h-[38px] w-9 rounded-xl glass-surface border border-white/50 dark:border-white/12 flex items-center justify-center text-slate-700 dark:text-slate-200"
+              >
+                <ChevronDown
+                  className={`w-4 h-4 transition-transform ${
+                    showMobileOfflineDetails ? 'rotate-180' : ''
+                  }`}
+                />
+              </button>
+            )}
+
+            <button
+              type="button"
+              onClick={() => setIsOfflineModalOpen(true)}
+              className="min-h-[38px] sm:min-h-[44px] px-3 sm:px-3.5 py-1.5 sm:py-2 copper-gradient text-slate-950 font-black rounded-xl text-xs flex items-center gap-1.5 shadow-sm active:scale-95 transition shrink-0"
+            >
+              <Download className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
+              <span>{t.explorer.offlineManageBtn}</span>
+            </button>
+          </div>
         </div>
 
         {offlineFeedback && (
@@ -328,7 +349,11 @@ export const ExplorerView: React.FC<ExplorerViewProps> = ({
 
         {/* Quick Offline Consult Chips for Cached Parks */}
         {downloadedList.length > 0 && (
-          <div className="flex gap-2 overflow-x-auto no-scrollbar pt-0.5">
+          <div
+            className={`${
+              showMobileOfflineDetails ? 'flex' : 'hidden sm:flex'
+            } gap-2 overflow-x-auto no-scrollbar pt-0.5`}
+          >
             {downloadedList.map((parkMap) => (
               <button
                 key={parkMap.packageId}
@@ -340,7 +365,7 @@ export const ExplorerView: React.FC<ExplorerViewProps> = ({
                     setExplorerOfflineMode(true);
                   }
                 }}
-                className={`min-h-[40px] px-3 py-1.5 rounded-xl text-xs font-semibold border whitespace-nowrap flex items-center gap-1.5 transition shrink-0 ${
+                className={`min-h-[38px] px-3 py-1.5 rounded-xl text-xs font-semibold border whitespace-nowrap flex items-center gap-1.5 transition shrink-0 ${
                   selectedPark === parkMap.parkId && offlineMode
                     ? 'bg-emerald-600 text-white border-emerald-400 shadow-sm'
                     : 'glass-surface border-white/55 dark:border-white/12 text-slate-800 dark:text-slate-200 hover:border-emerald-500/40'
@@ -474,12 +499,12 @@ export const ExplorerView: React.FC<ExplorerViewProps> = ({
           ))}
         </div>
 
-        {/* Experts Grid Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        {/* Experts Carousel on mobile / Grid on md+ */}
+        <div className="flex md:grid md:grid-cols-2 gap-3.5 sm:gap-4 overflow-x-auto md:overflow-visible snap-x snap-mandatory md:snap-none no-scrollbar pb-1 md:pb-0">
           {filteredExperts.map((expert) => (
             <div
               key={expert.id}
-              className="glass-card border border-white/60 dark:border-white/12 hover:border-amber-500/50 rounded-2xl p-4 sm:p-5 flex flex-col justify-between gap-3.5 transition"
+              className="w-[84vw] max-w-[330px] md:w-auto md:max-w-none shrink-0 snap-start glass-card border border-white/60 dark:border-white/12 hover:border-amber-500/50 rounded-2xl p-4 sm:p-5 flex flex-col justify-between gap-3.5 transition"
             >
               <div className="space-y-3">
                 <div className="flex items-start justify-between gap-3">
@@ -629,11 +654,11 @@ export const ExplorerView: React.FC<ExplorerViewProps> = ({
           )}
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <div className="flex md:grid md:grid-cols-3 gap-3.5 sm:gap-4 overflow-x-auto md:overflow-visible snap-x snap-mandatory md:snap-none no-scrollbar pb-1 md:pb-0">
           {protectedSites.map((site, index) => (
             <div
               key={index}
-              className="glass-card border border-white/60 dark:border-white/12 rounded-2xl p-4 flex flex-col justify-between gap-3 hover:border-amber-500/50 transition"
+              className="w-[80vw] max-w-[300px] md:w-auto md:max-w-none shrink-0 snap-start glass-card border border-white/60 dark:border-white/12 rounded-2xl p-4 flex flex-col justify-between gap-3 hover:border-amber-500/50 transition"
             >
               <div className="space-y-2">
                 <div className="flex justify-between items-start gap-2">

@@ -155,14 +155,14 @@ export const EquipementView: React.FC<EquipementViewProps> = ({
   };
 
   return (
-    <div className="space-y-6 p-4 sm:p-6 pb-24 lg:pb-12">
+    <div className="space-y-4 sm:space-y-6 px-3.5 py-4 sm:p-6 pb-24 lg:pb-12">
       {/* Header */}
-      <div className="flex flex-wrap items-center justify-between gap-3">
-        <div>
-          <h2 className="font-serif-display text-xl sm:text-2xl font-bold text-slate-900 dark:text-white">
+      <div className="flex flex-wrap items-center justify-between gap-2.5 sm:gap-3">
+        <div className="min-w-0">
+          <h2 className="font-serif-display text-lg sm:text-2xl font-bold text-slate-900 dark:text-white">
             {t.equipement.title}
           </h2>
-          <p className="text-xs text-slate-600 dark:text-slate-400">
+          <p className="hidden sm:block text-xs text-slate-600 dark:text-slate-400">
             {t.equipement.subtitle}
           </p>
         </div>
@@ -277,7 +277,7 @@ export const EquipementView: React.FC<EquipementViewProps> = ({
                   key={st.id}
                   type="button"
                   onClick={() => setSearchQuery(isSelected ? '' : st.storeName)}
-                  className={`min-w-[180px] max-w-[230px] p-3 rounded-2xl border text-start transition shrink-0 ${
+                  className={`min-w-[165px] max-w-[215px] p-2.5 sm:p-3 rounded-2xl border text-start transition shrink-0 ${
                     isSelected
                       ? 'copper-gradient text-slate-950 border-amber-400 shadow-sm'
                       : 'glass-card border-white/60 dark:border-white/12 text-slate-800 dark:text-slate-100 hover:border-amber-500/45'
@@ -335,9 +335,9 @@ export const EquipementView: React.FC<EquipementViewProps> = ({
                     key={product.id}
                     className="glass-card border border-white/60 dark:border-white/12 rounded-2xl overflow-hidden flex flex-col justify-between hover:border-amber-500/45 transition"
                   >
-                    <div className="flex gap-3.5 p-4">
+                    <div className="flex gap-3 sm:gap-3.5 p-3.5 sm:p-4">
                       <div
-                        className={`w-24 h-28 rounded-2xl bg-gradient-to-br ${product.gradientTheme} border border-amber-500/25 flex flex-col items-center justify-center shrink-0 p-2`}
+                        className={`w-20 h-24 sm:w-24 sm:h-28 rounded-2xl bg-gradient-to-br ${product.gradientTheme} border border-amber-500/25 flex flex-col items-center justify-center shrink-0 p-2`}
                       >
                         {renderStudioIcon(product.iconName)}
                         {product.isOfficialMerch && (

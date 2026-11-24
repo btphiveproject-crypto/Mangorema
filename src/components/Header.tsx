@@ -196,8 +196,8 @@ export const Header: React.FC<HeaderProps> = ({
         ];
 
   return (
-    <header className="sticky top-0 z-40 w-full glass-chrome border-b border-white/60 dark:border-white/10 transition-colors duration-200">
-      <div className="max-w-6xl mx-auto px-2.5 sm:px-6 h-14 flex items-center justify-between gap-2 sm:gap-4 lg:gap-8">
+    <header className="sticky top-0 z-40 w-full max-w-full overflow-x-clip glass-chrome pt-safe px-safe border-b border-white/60 dark:border-white/10 transition-colors duration-200">
+      <div className="w-full max-w-6xl mx-auto px-2.5 sm:px-6 h-13 sm:h-14 flex items-center justify-between gap-1.5 sm:gap-4 lg:gap-8 min-w-0">
         {/* Zone 1: Brand wordmark (clean single-line anchor) */}
         <button
           type="button"
@@ -207,16 +207,19 @@ export const Header: React.FC<HeaderProps> = ({
             }
             window.scrollTo({ top: 0, behavior: 'smooth' });
           }}
-          className="flex items-center gap-1.5 sm:gap-2.5 text-start whitespace-nowrap shrink-0 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-500 rounded-lg"
+          className="flex items-center gap-1.5 sm:gap-2.5 text-start whitespace-nowrap min-w-0 shrink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-500 rounded-lg"
         >
-          <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-full overflow-hidden border border-amber-600/75 dark:border-amber-500/75 bg-[#080B09] shrink-0 flex items-center justify-center">
+          <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-full overflow-hidden border border-amber-600/80 dark:border-amber-500/80 bg-[#F4F1EA] shrink-0 flex items-center justify-center shadow-xs">
             <img
-              src="/assets/aistudio/Gemini_Generated_Image_vn51dfvn51dfvn51__1__8a19ee16.jpeg"
+              src="/logo-badge.png"
+              onError={(e) => {
+                (e.currentTarget as HTMLImageElement).src = '/icon.svg';
+              }}
               alt="MANGOREMA"
-              className="w-full h-full object-cover scale-125"
+              className="w-full h-full object-contain"
             />
           </div>
-          <span className="font-serif-display text-base sm:text-lg font-bold tracking-tight text-slate-900 dark:text-amber-400 leading-none whitespace-nowrap">
+          <span className="font-serif-display text-[13px] min-[375px]:text-sm sm:text-lg font-bold tracking-tight text-slate-900 dark:text-amber-400 leading-none truncate">
             MANGOREMA
           </span>
         </button>
@@ -317,7 +320,7 @@ export const Header: React.FC<HeaderProps> = ({
               type="button"
               onClick={onOpenGallery}
               title={t.header.galleryTooltip}
-              className={`w-8 h-8 sm:w-9 sm:h-9 rounded-xl glass-surface hover:bg-white/80 dark:hover:bg-white/12 border flex items-center justify-center transition relative active:scale-95 shrink-0 ${
+              className={`hidden sm:flex w-9 h-9 rounded-xl glass-surface hover:bg-white/80 dark:hover:bg-white/12 border items-center justify-center transition relative active:scale-95 shrink-0 ${
                 workspaceMode === 'explorer' && activeTab === 'galerie'
                   ? 'border-amber-500 text-amber-700 dark:text-amber-300'
                   : 'border-white/60 dark:border-white/12 text-slate-700 dark:text-slate-200'
@@ -350,7 +353,7 @@ export const Header: React.FC<HeaderProps> = ({
               type="button"
               onClick={onOpenCommunity}
               title={t.header.communityTooltip}
-              className="w-8 h-8 sm:w-9 sm:h-9 rounded-xl glass-surface hover:bg-white/80 dark:hover:bg-white/12 border border-white/60 dark:border-white/12 text-emerald-700 dark:text-emerald-400 flex items-center justify-center transition relative active:scale-95 shrink-0"
+              className="hidden sm:flex w-9 h-9 rounded-xl glass-surface hover:bg-white/80 dark:hover:bg-white/12 border border-white/60 dark:border-white/12 text-emerald-700 dark:text-emerald-400 items-center justify-center transition relative active:scale-95 shrink-0"
             >
               <MessageCircle className="w-4 h-4" />
               {communityCount > 0 && (
@@ -394,16 +397,27 @@ export const Header: React.FC<HeaderProps> = ({
           )}
 
           {/* PWA Install Button & Mobile App Guide */}
-          <PWAInstallButton compact />
+          <div className="hidden sm:flex items-center">
+            <PWAInstallButton compact />
+          </div>
           <button
             type="button"
-            onClick={onOpenCapacitorGuide}
+            onClick={() => {
+              if (isInstallable) {
+                void install();
+              } else {
+                onOpenCapacitorGuide();
+              }
+            }}
             title={t.header.app}
             aria-label={t.header.app}
-            className="h-8 sm:h-9 px-2 md:px-2.5 rounded-xl glass-surface hover:bg-white/80 dark:hover:bg-white/12 border border-white/60 dark:border-white/12 text-slate-800 dark:text-slate-100 text-xs font-semibold flex items-center gap-1.5 transition whitespace-nowrap shrink-0"
+            className="h-8 sm:h-9 px-2 md:px-2.5 rounded-xl glass-surface hover:bg-white/80 dark:hover:bg-white/12 border border-white/60 dark:border-white/12 text-slate-800 dark:text-slate-100 text-xs font-semibold flex items-center gap-1.5 transition relative whitespace-nowrap shrink-0"
           >
             <Download className="w-3.5 h-3.5 text-amber-600 dark:text-amber-400 shrink-0" />
             <span className="hidden md:inline">{t.header.app}</span>
+            {isInstallable && (
+              <span className="sm:hidden w-2 h-2 rounded-full bg-amber-500 absolute -top-0.5 -right-0.5" />
+            )}
           </button>
 
           {/* Primary Safety SOS Action */}
@@ -429,7 +443,7 @@ export const Header: React.FC<HeaderProps> = ({
           >
             <img
               src={sanitizeImageUrl(user.avatar, {
-                fallback: '/assets/aistudio/Gemini_Generated_Image_vn51dfvn51dfvn51__1__8a19ee16.jpeg',
+                fallback: '/logo-badge.png',
               })}
               alt={user.name}
               referrerPolicy="no-referrer"

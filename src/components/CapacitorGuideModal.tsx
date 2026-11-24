@@ -143,7 +143,7 @@ adb install -r android/app/build/outputs/apk/debug/app-debug.apk`;
 
   return (
     <div
-      className="fixed inset-0 z-50 flex items-center justify-center bg-black/75 backdrop-blur-md p-4 animate-in fade-in"
+      className="fixed inset-0 z-50 flex items-center justify-center bg-black/75 backdrop-blur-md p-4 pt-[calc(1rem+var(--safe-top))] pb-[calc(1rem+var(--safe-bottom))] px-safe animate-in fade-in"
       onClick={onClose}
     >
       <div

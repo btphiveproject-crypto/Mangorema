@@ -78,13 +78,13 @@ define(['./workbox-53feb3a3'], (function (workbox) { 'use strict';
    */
   workbox.precacheAndRoute([{
     "url": "pwa-maskable-512x512.png",
-    "revision": "cb1158761d413a4a1437662c962905c1"
+    "revision": "6344cc7ddf057add1751bd84895ef448"
   }, {
     "url": "pwa-512x512.png",
-    "revision": "2d305f11184fc09212199905386e37db"
+    "revision": "f84b384c6375170ebe67dd9855184ffa"
   }, {
     "url": "pwa-192x192.png",
-    "revision": "73479eebedc8dc1855214f70f599d27a"
+    "revision": "85bc16075a8566bb311b87f6d8ff7b21"
   }, {
     "url": "mangorema-logo.jpg",
     "revision": "387dd1d18752d6221123bed3dc79f9af"
@@ -95,17 +95,20 @@ define(['./workbox-53feb3a3'], (function (workbox) { 'use strict';
     "url": "logo.jpg",
     "revision": "387dd1d18752d6221123bed3dc79f9af"
   }, {
+    "url": "logo-badge.png",
+    "revision": "3d36fcd78445570438e1196771dda134"
+  }, {
     "url": "index.html",
-    "revision": "c8c9705bd09e424dbab297753fbf7274"
+    "revision": "58f9b79c1a38973852522aff36f98636"
   }, {
     "url": "icon.svg",
     "revision": "343b110dd1c3120aed6c348497b157c4"
   }, {
     "url": "favicon.ico",
-    "revision": "387dd1d18752d6221123bed3dc79f9af"
+    "revision": "53f4f74565054a692004ca37d952a6dc"
   }, {
     "url": "apple-touch-icon.png",
-    "revision": "b9deffe01e4382f1aa8ce8e26f326399"
+    "revision": "c85370c9f77c2d709a2414275c7d4dcd"
   }, {
     "url": "assets/workbox-window.prod.es5-Bd17z0YL.js",
     "revision": null
@@ -113,13 +116,13 @@ define(['./workbox-53feb3a3'], (function (workbox) { 'use strict';
     "url": "assets/trending-up-BKclvPBQ.js",
     "revision": null
   }, {
+    "url": "assets/trees-z8-VbPvH.js",
+    "revision": null
+  }, {
     "url": "assets/search-FtGz9oo_.js",
     "revision": null
   }, {
     "url": "assets/save-DAct3N5G.js",
-    "revision": null
-  }, {
-    "url": "assets/route-wK5UGNhg.js",
     "revision": null
   }, {
     "url": "assets/pongara_coastal_safari_1795342715267-DpNc55Uw.jpg",
@@ -131,10 +134,10 @@ define(['./workbox-53feb3a3'], (function (workbox) { 'use strict';
     "url": "assets/ivindo_djidji_waterfalls_1795342714431-BWkF_Ah2.jpg",
     "revision": null
   }, {
-    "url": "assets/index-q1ie7kKw.css",
+    "url": "assets/index-IeKiSajg.css",
     "revision": null
   }, {
-    "url": "assets/index-DJVZ3IYH.js",
+    "url": "assets/index-DeMfVi8P.js",
     "revision": null
   }, {
     "url": "assets/icon_navettes_1794990184691-D__gcP5T.jpg",
@@ -176,7 +179,7 @@ define(['./workbox-53feb3a3'], (function (workbox) { 'use strict';
     "url": "assets/circle-play-DL8k9lz6.js",
     "revision": null
   }, {
-    "url": "assets/chevron-up-BozT9yYm.js",
+    "url": "assets/chevron-up-3mzWS3jF.js",
     "revision": null
   }, {
     "url": "assets/bivouac_equatorial_gear_1795342715941-BkTBUX4n.js",
@@ -185,78 +188,81 @@ define(['./workbox-53feb3a3'], (function (workbox) { 'use strict';
     "url": "assets/bivouac_equatorial_gear_1795342715941-BScsisOL.jpg",
     "revision": null
   }, {
-    "url": "assets/VendorPortalModal--1tYC160.js",
+    "url": "assets/VendorPortalModal-l2KFX9AX.js",
     "revision": null
   }, {
-    "url": "assets/TransportsView-CTQ4zqaW.js",
+    "url": "assets/TransportsView-CBCcwK_5.js",
     "revision": null
   }, {
-    "url": "assets/StoreWorkspace-DH79E2tt.js",
+    "url": "assets/StoreWorkspace-DUrbrTys.js",
     "revision": null
   }, {
-    "url": "assets/SortiesView-COk71egt.js",
+    "url": "assets/SortiesView-wvvirR1e.js",
     "revision": null
   }, {
-    "url": "assets/SiteContributionsSection-hNfMsy2C.js",
+    "url": "assets/SiteContributionsSection-DfWPC0_8.js",
     "revision": null
   }, {
-    "url": "assets/SafetyView-LD0YKst7.js",
+    "url": "assets/SafetyView-CDjooQ4I.js",
     "revision": null
   }, {
-    "url": "assets/ProfileView-BkqPc3P9.js",
+    "url": "assets/ProfileView-DZ5xnebz.js",
     "revision": null
   }, {
-    "url": "assets/ProfessionalWorkspace-utZN5IHP.js",
+    "url": "assets/ProfessionalWorkspace-CsIJuueN.js",
     "revision": null
   }, {
-    "url": "assets/PhotoGalleryView-BuKmcwXR.js",
+    "url": "assets/PhotoGalleryView-BbeGxRID.js",
     "revision": null
   }, {
-    "url": "assets/OfflineMapsModal-NB0sMH8b.js",
+    "url": "assets/OfflineMapsModal-BmRNd6sr.js",
     "revision": null
   }, {
-    "url": "assets/MediaCaptureBox-wkTTLQ9q.js",
+    "url": "assets/MediaCaptureBox-DLR2zeay.js",
     "revision": null
   }, {
-    "url": "assets/GroundingPanels-CbKjKI02.js",
+    "url": "assets/GroundingPanels-Bi1ate54.js",
     "revision": null
   }, {
-    "url": "assets/ExplorerView-BZ-FTWsg.js",
+    "url": "assets/ExplorerView-DJUJZ49d.js",
     "revision": null
   }, {
-    "url": "assets/EquipementView-ZAloXjD-.js",
+    "url": "assets/EquipementView-Dgq6cj_Q.js",
     "revision": null
   }, {
-    "url": "assets/CommunityHubModal-BSQKHkKp.js",
+    "url": "assets/CommunityHubModal-CIiw8bJf.js",
     "revision": null
   }, {
     "url": "apple-touch-icon.png",
-    "revision": "b9deffe01e4382f1aa8ce8e26f326399"
+    "revision": "c85370c9f77c2d709a2414275c7d4dcd"
   }, {
     "url": "favicon.ico",
-    "revision": "387dd1d18752d6221123bed3dc79f9af"
+    "revision": "53f4f74565054a692004ca37d952a6dc"
   }, {
     "url": "icon.svg",
     "revision": "343b110dd1c3120aed6c348497b157c4"
+  }, {
+    "url": "logo-badge.png",
+    "revision": "3d36fcd78445570438e1196771dda134"
   }, {
     "url": "logo.jpg",
     "revision": "387dd1d18752d6221123bed3dc79f9af"
   }, {
     "url": "pwa-192x192.png",
-    "revision": "73479eebedc8dc1855214f70f599d27a"
+    "revision": "85bc16075a8566bb311b87f6d8ff7b21"
   }, {
     "url": "pwa-512x512.png",
-    "revision": "2d305f11184fc09212199905386e37db"
+    "revision": "f84b384c6375170ebe67dd9855184ffa"
   }, {
     "url": "pwa-maskable-512x512.png",
-    "revision": "cb1158761d413a4a1437662c962905c1"
+    "revision": "6344cc7ddf057add1751bd84895ef448"
   }, {
     "url": "manifest.webmanifest",
     "revision": "84d8864f399e656d9b959099b724d7f0"
   }], {});
   workbox.cleanupOutdatedCaches();
   workbox.registerRoute(new workbox.NavigationRoute(workbox.createHandlerBoundToURL("index.html"), {
-    denylist: [/^\/api\//, /^\/ws\//]
+    denylist: [/^\/api\//, /^\/ws\//, /^\/__\//]
   }));
   workbox.registerRoute(/^https:\/\/fonts\.googleapis\.com\/.*/i, new workbox.CacheFirst({
     "cacheName": "google-fonts-cache",

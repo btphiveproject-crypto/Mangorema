@@ -122,15 +122,15 @@ export const TransportsView: React.FC<TransportsViewProps> = ({
   const FleetIcon = fleetTheme.Icon;
 
   return (
-    <div className="space-y-5 p-4 sm:p-6 pb-24 lg:pb-12">
+    <div className="space-y-4 sm:space-y-5 px-3.5 py-4 sm:p-6 pb-24 lg:pb-12">
       {/* Header */}
-      <div className="flex items-center gap-3">
+      <div className="flex items-center gap-2.5 sm:gap-3">
         <CategoryIcon category="navettes" size="md" />
         <div className="min-w-0">
-          <h2 className="font-serif-display text-xl sm:text-2xl text-slate-900 dark:text-white font-bold">
+          <h2 className="font-serif-display text-lg sm:text-2xl text-slate-900 dark:text-white font-bold truncate">
             {t.transports.title}
           </h2>
-          <p className="text-xs text-slate-600 dark:text-slate-400">
+          <p className="hidden sm:block text-xs text-slate-600 dark:text-slate-400">
             {t.transports.subtitle}
           </p>
         </div>

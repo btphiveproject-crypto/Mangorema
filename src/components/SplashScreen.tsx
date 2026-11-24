@@ -38,11 +38,11 @@ export const SplashScreen: React.FC<SplashScreenProps> = ({ onComplete }) => {
   };
 
   return (
-    <div className="fixed inset-0 z-[100] bg-[#f5f3ef] dark:bg-[#080B09] flex items-center justify-center p-6 animate-in fade-in">
-      <div className="w-full max-w-md flex flex-col justify-between min-h-[82vh] max-h-[760px]">
+    <div className="fixed inset-0 z-[100] h-[100dvh] overflow-y-auto no-scrollbar bg-[#f5f3ef] dark:bg-[#080B09] flex items-center justify-center px-5 py-6 pt-[calc(1.5rem+var(--safe-top))] pb-[calc(1.5rem+var(--safe-bottom))] px-safe animate-in fade-in">
+      <div className="w-full max-w-md flex flex-col justify-between min-h-full sm:min-h-[78dvh] max-h-[760px] my-auto">
         {/* Top Brand Mark with Official Logo */}
-        <div className="pt-4 flex flex-col items-center text-center space-y-3">
-          <div className="w-44 h-44 sm:w-52 sm:h-52 rounded-3xl overflow-hidden border-2 border-amber-500/80 p-1 bg-white dark:bg-[#101412] shadow-xl transition-transform duration-500 hover:scale-105">
+        <div className="pt-2 sm:pt-4 flex flex-col items-center text-center space-y-3">
+          <div className="w-36 h-36 sm:w-48 sm:h-48 rounded-3xl overflow-hidden border-2 border-amber-500/80 p-1 bg-white dark:bg-[#101412] shadow-xl transition-transform duration-500 hover:scale-105">
             <img
               src="/assets/aistudio/Gemini_Generated_Image_vn51dfvn51dfvn51__1__8a19ee16.jpeg"
               alt="Logo Officiel MANGOREMA - Connaître pour mieux protéger"

@@ -8,6 +8,8 @@ import {
   getAuth,
   GoogleAuthProvider,
   signInWithPopup,
+  signInWithRedirect,
+  getRedirectResult,
   signOut,
   User,
 } from 'firebase/auth';
@@ -69,6 +71,9 @@ import {
   PublicExplorerProfile,
   SiteContribution,
   SiteContributionType,
+  SubmittedSite,
+  SubmittedSiteType,
+  SubmittedSiteDifficulty,
   DirectChat,
   DirectChatMessage,
 } from './types';
@@ -130,9 +135,6 @@ export const db = dbInstance;
 export const auth = getAuth(app);
 export const storage = getStorage(app);
 export const googleProvider = new GoogleAuthProvider();
-WORKSPACE_SCOPES.forEach((scope) => {
-  googleProvider.addScope(scope);
-});
 googleProvider.setCustomParameters({ prompt: 'select_account' });
 
 // Strict in-memory OAuth access token storage (never localStorage / sessionStorage)
@@ -222,16 +224,223 @@ export function handleFirestoreError(
 // =========================================================================
 // Google Auth & Google Contacts OAuth Helpers
 // =========================================================================
-export async function signInWithGoogle(): Promise<User> {
-  const result = await signInWithPopup(auth, googleProvider);
-  const credential = GoogleAuthProvider.credentialFromResult(result);
-  if (credential?.accessToken) {
-    cachedGoogleAccessToken = credential.accessToken;
+export type GoogleAuthDiagnosticCode =
+  | 'auth/webview-disallowed'
+  | 'auth/popup-blocked'
+  | 'auth/unauthorized-domain'
+  | 'auth/popup-closed-by-user'
+  | 'auth/cancelled-popup-request'
+  | 'auth/network-request-failed'
+  | 'auth/web-storage-unsupported'
+  | 'auth/operation-not-supported-in-this-environment'
+  | 'auth/unknown';
+
+export interface GoogleAuthIssueInfo {
+  code: GoogleAuthDiagnosticCode;
+  message: string;
+  hostname: string;
+  canRetryRedirect: boolean;
+  isWebViewBlocked: boolean;
+  isUnauthorizedDomain: boolean;
+}
+
+export class GoogleAuthDiagnosticError extends Error {
+  readonly info: GoogleAuthIssueInfo;
+
+  constructor(info: GoogleAuthIssueInfo) {
+    super(info.message);
+    this.name = 'GoogleAuthDiagnosticError';
+    this.info = info;
   }
-  return result.user;
+}
+
+export function isCapacitorNativePlatform(): boolean {
+  if (typeof window === 'undefined') return false;
+  const cap = (window as unknown as { Capacitor?: { isNativePlatform?: () => boolean } }).Capacitor;
+  try {
+    return Boolean(cap?.isNativePlatform?.());
+  } catch {
+    return false;
+  }
+}
+
+export function isEmbeddedWebView(): boolean {
+  if (typeof navigator === 'undefined') return false;
+  if (isCapacitorNativePlatform()) return true;
+  const ua = navigator.userAgent || '';
+  const isAndroidWv = /; wv\)/i.test(ua) && /Android/i.test(ua);
+  const isInAppSocialBrowser = /(FBAN|FBAV|Instagram|Line\/|MicroMessenger|WhatsApp|TikTok)/i.test(ua);
+  return isAndroidWv || isInAppSocialBrowser;
+}
+
+export function isCrossOriginIframe(): boolean {
+  if (typeof window === 'undefined') return false;
+  try {
+    return window.self !== window.top;
+  } catch {
+    return true;
+  }
+}
+
+function mapFirebaseAuthError(err: unknown): GoogleAuthDiagnosticError {
+  if (err instanceof GoogleAuthDiagnosticError) return err;
+
+  const rawCode =
+    typeof err === 'object' && err !== null && 'code' in err
+      ? String((err as { code?: unknown }).code || '')
+      : '';
+  const rawMessage = err instanceof Error ? err.message : String(err || '');
+  const hostname = typeof window !== 'undefined' ? window.location.hostname || window.location.origin : '';
+  const inIframe = isCrossOriginIframe();
+  const inWebView = isEmbeddedWebView();
+
+  if (
+    rawCode === 'auth/webview-disallowed' ||
+    /disallowed_useragent/i.test(rawMessage) ||
+    inWebView
+  ) {
+    return new GoogleAuthDiagnosticError({
+      code: 'auth/webview-disallowed',
+      message:
+        "Google bloque la connexion OAuth dans les WebViews intégrées (APK Android ou navigateur intégré). Ouvrez MANGOREMA dans Chrome ou Safari pour valider votre compte Google.",
+      hostname,
+      canRetryRedirect: false,
+      isWebViewBlocked: true,
+      isUnauthorizedDomain: false,
+    });
+  }
+
+  if (rawCode === 'auth/unauthorized-domain') {
+    return new GoogleAuthDiagnosticError({
+      code: 'auth/unauthorized-domain',
+      message: `Ce domaine (${hostname || 'inconnu'}) n'est pas encore autorisé dans Firebase Authentication -> Domaines autorisés.`,
+      hostname,
+      canRetryRedirect: false,
+      isWebViewBlocked: false,
+      isUnauthorizedDomain: true,
+    });
+  }
+
+  if (
+    rawCode === 'auth/popup-blocked' ||
+    rawCode === 'auth/operation-not-supported-in-this-environment'
+  ) {
+    return new GoogleAuthDiagnosticError({
+      code: rawCode as GoogleAuthDiagnosticCode,
+      message: inIframe
+        ? "La fenêtre pop-up Google a été bloquée par votre navigateur. Autorisez les pop-ups pour ce site ou ouvrez l'application dans un onglet Chrome/Safari."
+        : 'Le pop-up Google a été bloqué sur cet appareil. Utilisez la redirection Google directe ci-dessous.',
+      hostname,
+      canRetryRedirect: !inIframe && !inWebView,
+      isWebViewBlocked: false,
+      isUnauthorizedDomain: false,
+    });
+  }
+
+  if (rawCode === 'auth/popup-closed-by-user' || rawCode === 'auth/cancelled-popup-request') {
+    return new GoogleAuthDiagnosticError({
+      code: rawCode as GoogleAuthDiagnosticCode,
+      message: 'Fenêtre de connexion Google fermée avant la fin de la validation.',
+      hostname,
+      canRetryRedirect: !inIframe && !inWebView,
+      isWebViewBlocked: false,
+      isUnauthorizedDomain: false,
+    });
+  }
+
+  if (rawCode === 'auth/network-request-failed') {
+    return new GoogleAuthDiagnosticError({
+      code: 'auth/network-request-failed',
+      message: 'Connexion réseau instable ou hors-ligne : impossible de joindre les serveurs Google.',
+      hostname,
+      canRetryRedirect: false,
+      isWebViewBlocked: false,
+      isUnauthorizedDomain: false,
+    });
+  }
+
+  if (rawCode === 'auth/web-storage-unsupported') {
+    return new GoogleAuthDiagnosticError({
+      code: 'auth/web-storage-unsupported',
+      message:
+        'Le stockage local ou les cookies tiers sont désactivés dans votre navigateur. Activez les cookies pour vous connecter avec Google.',
+      hostname,
+      canRetryRedirect: false,
+      isWebViewBlocked: false,
+      isUnauthorizedDomain: false,
+    });
+  }
+
+  return new GoogleAuthDiagnosticError({
+    code: 'auth/unknown',
+    message: rawMessage || 'Impossible de finaliser la connexion Google.',
+    hostname,
+    canRetryRedirect: !inIframe && !inWebView,
+    isWebViewBlocked: false,
+    isUnauthorizedDomain: false,
+  });
+}
+
+export async function signInWithGoogle(): Promise<User | null> {
+  if (isEmbeddedWebView()) {
+    throw mapFirebaseAuthError({ code: 'auth/webview-disallowed' });
+  }
+
+  try {
+    const result = await signInWithPopup(auth, googleProvider);
+    const credential = GoogleAuthProvider.credentialFromResult(result);
+    if (credential?.accessToken) {
+      cachedGoogleAccessToken = credential.accessToken;
+    }
+    return result.user;
+  } catch (err) {
+    const mapped = mapFirebaseAuthError(err);
+    if (
+      (mapped.info.code === 'auth/popup-blocked' ||
+        mapped.info.code === 'auth/operation-not-supported-in-this-environment') &&
+      mapped.info.canRetryRedirect
+    ) {
+      await signInWithRedirect(auth, googleProvider);
+      return null;
+    }
+    throw mapped;
+  }
+}
+
+export async function signInWithGoogleRedirect(): Promise<void> {
+  if (isEmbeddedWebView()) {
+    throw mapFirebaseAuthError({ code: 'auth/webview-disallowed' });
+  }
+  try {
+    await signInWithRedirect(auth, googleProvider);
+  } catch (err) {
+    throw mapFirebaseAuthError(err);
+  }
+}
+
+export async function consumeGoogleRedirectResult(): Promise<{
+  user: User | null;
+  error: GoogleAuthDiagnosticError | null;
+}> {
+  try {
+    const result = await getRedirectResult(auth);
+    if (!result) {
+      return { user: null, error: null };
+    }
+    const credential = GoogleAuthProvider.credentialFromResult(result);
+    if (credential?.accessToken) {
+      cachedGoogleAccessToken = credential.accessToken;
+    }
+    return { user: result.user, error: null };
+  } catch (err) {
+    return { user: null, error: mapFirebaseAuthError(err) };
+  }
 }
 
 export async function refreshWorkspaceAccessToken(): Promise<string> {
+  if (isEmbeddedWebView()) {
+    throw mapFirebaseAuthError({ code: 'auth/webview-disallowed' });
+  }
   const workspaceProvider = new GoogleAuthProvider();
   WORKSPACE_SCOPES.forEach((scope) => {
     workspaceProvider.addScope(scope);
@@ -240,13 +449,17 @@ export async function refreshWorkspaceAccessToken(): Promise<string> {
     prompt: 'consent',
     include_granted_scopes: 'true',
   });
-  const result = await signInWithPopup(auth, workspaceProvider);
-  const credential = GoogleAuthProvider.credentialFromResult(result);
-  if (!credential?.accessToken) {
-    throw new Error("Impossible d'obtenir le jeton d'accès Google Workspace.");
+  try {
+    const result = await signInWithPopup(auth, workspaceProvider);
+    const credential = GoogleAuthProvider.credentialFromResult(result);
+    if (!credential?.accessToken) {
+      throw new Error("Impossible d'obtenir le jeton d'accès Google Workspace.");
+    }
+    cachedGoogleAccessToken = credential.accessToken;
+    return credential.accessToken;
+  } catch (err) {
+    throw mapFirebaseAuthError(err);
   }
-  cachedGoogleAccessToken = credential.accessToken;
-  return credential.accessToken;
 }
 
 export const refreshGoogleContactsAccessToken = refreshWorkspaceAccessToken;
@@ -2749,6 +2962,172 @@ export function subscribeSiteContributions(
           description: data.description || '',
           photoUrl: sanitizeStoredMediaUrl(typeof data.photoUrl === 'string' ? data.photoUrl : undefined),
           storagePath: typeof data.storagePath === 'string' ? data.storagePath : undefined,
+          createdAtLabel: data.createdAtLabel || 'Récent',
+          createdAtMs: typeof createdAtVal?.toMillis === 'function' ? createdAtVal.toMillis() : Date.now(),
+        };
+      });
+      list.sort((a, b) => (b.createdAtMs || 0) - (a.createdAtMs || 0));
+      onData(list);
+    },
+    (error) => {
+      try {
+        handleFirestoreError(error, OperationType.LIST, path);
+      } catch (wrapped) {
+        if (onError && wrapped instanceof Error) onError(wrapped);
+      }
+    }
+  );
+}
+
+// =========================================================================
+// USER-SUBMITTED GABON SITES & SITE TYPES (/submitted_sites)
+// =========================================================================
+const VALID_SUBMITTED_SITE_TYPES: SubmittedSiteType[] = [
+  'PARC_NATIONAL',
+  'RESERVE_NATURELLE',
+  'CASCADE_CHUTE',
+  'PLAGE_LAGUNE',
+  'MONTAGNE_SOMMET',
+  'SENTIER_FORET',
+  'MANGROVE_ZONE_HUMIDE',
+  'ECOLODGE_CAMP',
+  'SITE_CULTUREL',
+];
+
+const VALID_SUBMITTED_DIFFICULTIES: SubmittedSiteDifficulty[] = [
+  'Facile',
+  'Modéré',
+  'Difficile',
+];
+
+export async function uploadSubmittedSitePhoto(
+  uid: string,
+  siteId: string,
+  photoBlob: Blob,
+  onProgress?: (percent: number) => void
+): Promise<{ downloadUrl: string; storagePath: string }> {
+  const safeUid = sanitizeId(uid);
+  const safeId = sanitizeId(siteId);
+  const path = `site-contributions/${safeUid}/site-${safeId}-${Date.now()}.jpg`;
+  return uploadBlobToStoragePath(
+    path,
+    photoBlob,
+    { uid: safeUid, siteId: safeId },
+    onProgress
+  );
+}
+
+export async function saveSubmittedSiteToFirestore(
+  uid: string,
+  site: Omit<SubmittedSite, 'userId' | 'createdAtMs'>
+): Promise<void> {
+  const safeUid = sanitizeId(uid);
+  const safeId = sanitizeId(site.id);
+  const path = `submitted_sites/${safeId}`;
+
+  const siteName = sanitizeStr(site.siteName, 120);
+  const province = sanitizeStr(site.province, 80);
+  const description = sanitizeStr(site.description, 800);
+  if (siteName.length < 2) {
+    throw new Error('Veuillez indiquer le nom du site (minimum 2 caractères).');
+  }
+  if (province.length < 2) {
+    throw new Error('Veuillez sélectionner la province du site.');
+  }
+  if (description.length < 5) {
+    throw new Error('Veuillez décrire le site en au moins 5 caractères.');
+  }
+
+  const safeSiteType: SubmittedSiteType = VALID_SUBMITTED_SITE_TYPES.includes(site.siteType)
+    ? site.siteType
+    : 'PARC_NATIONAL';
+  const safeDifficulty: SubmittedSiteDifficulty = VALID_SUBMITTED_DIFFICULTIES.includes(site.difficulty)
+    ? site.difficulty
+    : 'Modéré';
+
+  const payload: Record<string, unknown> = {
+    id: safeId,
+    userId: safeUid,
+    authorName: sanitizeStr(site.authorName, 80, 'Explorateur MANGOREMA'),
+    siteName,
+    siteType: safeSiteType,
+    province,
+    difficulty: safeDifficulty,
+    description,
+    status: site.status === 'PUBLISHED' ? 'PUBLISHED' : 'PENDING_REVIEW',
+    visibility: 'PUBLIC',
+    createdAtLabel: sanitizeStr(site.createdAtLabel, 64, "Aujourd'hui"),
+    createdAt: serverTimestamp(),
+  };
+
+  const cleanAvatar = sanitizeStoredMediaUrl(site.authorAvatar);
+  if (cleanAvatar) payload.authorAvatar = cleanAvatar.slice(0, 1000);
+  if (site.locationLabel) payload.locationLabel = sanitizeStr(site.locationLabel, 120);
+
+  const safePhoto = sanitizeStoredMediaUrl(site.photoUrl);
+  if (safePhoto) payload.photoUrl = safePhoto.slice(0, 1000);
+  if (
+    site.storagePath &&
+    site.storagePath.startsWith(`site-contributions/${safeUid}/`) &&
+    !site.storagePath.includes('..')
+  ) {
+    payload.storagePath = sanitizeStr(site.storagePath, 300);
+  }
+
+  try {
+    await setDoc(doc(db, 'submitted_sites', safeId), payload);
+  } catch (error) {
+    handleFirestoreError(error, OperationType.CREATE, path);
+  }
+}
+
+export async function deleteSubmittedSiteFromFirestore(
+  siteId: string,
+  storagePath?: string
+): Promise<void> {
+  const safeId = sanitizeId(siteId);
+  const path = `submitted_sites/${safeId}`;
+  try {
+    await deleteDoc(doc(db, 'submitted_sites', safeId));
+    if (storagePath) {
+      await deleteStoredMediaPath(storagePath);
+    }
+  } catch (error) {
+    handleFirestoreError(error, OperationType.DELETE, path);
+  }
+}
+
+export function subscribeSubmittedSites(
+  onData: (sites: SubmittedSite[]) => void,
+  onError?: (err: Error) => void
+): Unsubscribe {
+  const path = 'submitted_sites';
+  const q = query(collection(db, 'submitted_sites'), where('visibility', '==', 'PUBLIC'));
+
+  return onSnapshot(
+    q,
+    (snapshot) => {
+      const list: SubmittedSite[] = snapshot.docs.map((d) => {
+        const data = d.data();
+        const createdAtVal = data.createdAt as { toMillis?: () => number } | undefined;
+        return {
+          id: data.id || d.id,
+          userId: data.userId || '',
+          authorName: data.authorName || 'Explorateur MANGOREMA',
+          authorAvatar: sanitizeStoredMediaUrl(typeof data.authorAvatar === 'string' ? data.authorAvatar : undefined),
+          siteName: data.siteName || 'Site naturel du Gabon',
+          siteType: VALID_SUBMITTED_SITE_TYPES.includes(data.siteType)
+            ? data.siteType
+            : 'PARC_NATIONAL',
+          province: data.province || 'Estuaire',
+          locationLabel: typeof data.locationLabel === 'string' && data.locationLabel ? data.locationLabel : undefined,
+          difficulty: VALID_SUBMITTED_DIFFICULTIES.includes(data.difficulty)
+            ? data.difficulty
+            : 'Modéré',
+          description: data.description || '',
+          photoUrl: sanitizeStoredMediaUrl(typeof data.photoUrl === 'string' ? data.photoUrl : undefined),
+          storagePath: typeof data.storagePath === 'string' ? data.storagePath : undefined,
+          status: data.status === 'PUBLISHED' ? 'PUBLISHED' : 'PENDING_REVIEW',
           createdAtLabel: data.createdAtLabel || 'Récent',
           createdAtMs: typeof createdAtVal?.toMillis === 'function' ? createdAtVal.toMillis() : Date.now(),
         };

@@ -10,6 +10,13 @@ const config: CapacitorConfig = {
     allowMixedContent: false,
     backgroundColor: '#080B09',
   },
+  plugins: {
+    SystemBars: {
+      insetsHandling: 'css',
+      initialViewportFitValueHint: 'cover',
+      style: 'DEFAULT',
+    },
+  },
   ...(serverUrl
     ? {
         server: {

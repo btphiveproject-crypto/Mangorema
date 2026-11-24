@@ -701,6 +701,37 @@ export interface SiteContribution {
   createdAtMs?: number;
 }
 
+export type SubmittedSiteType =
+  | 'PARC_NATIONAL'
+  | 'RESERVE_NATURELLE'
+  | 'CASCADE_CHUTE'
+  | 'PLAGE_LAGUNE'
+  | 'MONTAGNE_SOMMET'
+  | 'SENTIER_FORET'
+  | 'MANGROVE_ZONE_HUMIDE'
+  | 'ECOLODGE_CAMP'
+  | 'SITE_CULTUREL';
+
+export type SubmittedSiteDifficulty = 'Facile' | 'Modéré' | 'Difficile';
+
+export interface SubmittedSite {
+  id: string;
+  userId: string;
+  authorName: string;
+  authorAvatar?: string;
+  siteName: string;
+  siteType: SubmittedSiteType;
+  province: string;
+  locationLabel?: string;
+  difficulty: SubmittedSiteDifficulty;
+  description: string;
+  photoUrl?: string;
+  storagePath?: string;
+  status: 'PENDING_REVIEW' | 'PUBLISHED';
+  createdAtLabel: string;
+  createdAtMs?: number;
+}
+
 export interface DirectChat {
   id: string;
   participantUids: [string, string];

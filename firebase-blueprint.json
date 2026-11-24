@@ -770,6 +770,43 @@
       },
       "required": ["id", "userId", "authorName", "parkId", "parkName", "contributionType", "title", "description", "visibility", "createdAtLabel", "createdAt"]
     },
+    "SubmittedSite": {
+      "title": "SubmittedSite",
+      "description": "Nouveau site naturel ou culturel gabonais soumis depuis le profil avec son type de site.",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "pattern": "^[a-zA-Z0-9_\\-]+$", "maxLength": 128 },
+        "userId": { "type": "string", "pattern": "^[a-zA-Z0-9_\\-]+$", "maxLength": 128 },
+        "authorName": { "type": "string", "minLength": 1, "maxLength": 80 },
+        "authorAvatar": { "type": "string", "maxLength": 1000 },
+        "siteName": { "type": "string", "minLength": 2, "maxLength": 120 },
+        "siteType": {
+          "type": "string",
+          "enum": [
+            "PARC_NATIONAL",
+            "RESERVE_NATURELLE",
+            "CASCADE_CHUTE",
+            "PLAGE_LAGUNE",
+            "MONTAGNE_SOMMET",
+            "SENTIER_FORET",
+            "MANGROVE_ZONE_HUMIDE",
+            "ECOLODGE_CAMP",
+            "SITE_CULTUREL"
+          ]
+        },
+        "province": { "type": "string", "minLength": 2, "maxLength": 80 },
+        "locationLabel": { "type": "string", "maxLength": 120 },
+        "difficulty": { "type": "string", "enum": ["Facile", "Modéré", "Difficile"] },
+        "description": { "type": "string", "minLength": 5, "maxLength": 800 },
+        "photoUrl": { "type": "string", "maxLength": 1000 },
+        "storagePath": { "type": "string", "maxLength": 300 },
+        "status": { "type": "string", "enum": ["PENDING_REVIEW", "PUBLISHED"] },
+        "visibility": { "type": "string", "enum": ["PUBLIC"] },
+        "createdAtLabel": { "type": "string", "minLength": 1, "maxLength": 64 },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["id", "userId", "authorName", "siteName", "siteType", "province", "difficulty", "description", "status", "visibility", "createdAtLabel", "createdAt"]
+    },
     "DirectChat": {
       "title": "DirectChat",
       "description": "Conversation privée 1-à-1 entre deux membres identifiés MANGOREMA (sans PII).",
@@ -883,6 +920,10 @@
     "/site_contributions/{contributionId}": {
       "schema": { "$ref": "#/entities/SiteContribution" },
       "description": "Contributions terrain et photos des sites naturels et parcs nationaux du Gabon."
+    },
+    "/submitted_sites/{siteId}": {
+      "schema": { "$ref": "#/entities/SubmittedSite" },
+      "description": "Sites naturels et écotouristiques proposés par les utilisateurs avec type de site."
     },
     "/direct_chats/{chatId}": {
       "schema": { "$ref": "#/entities/DirectChat" },

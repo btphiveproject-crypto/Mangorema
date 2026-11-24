@@ -23,14 +23,14 @@ export const SafetyView: React.FC<SafetyViewProps> = ({
 }) => {
   const { t } = useLanguage();
   return (
-    <div className="space-y-6 p-4 sm:p-6 pb-24 lg:pb-12">
+    <div className="space-y-4 sm:space-y-6 px-3.5 py-4 sm:p-6 pb-24 lg:pb-12">
       {/* Title */}
       <div>
-        <h2 className="font-serif-display text-2xl sm:text-3xl text-slate-900 dark:text-white font-bold flex items-center gap-2.5 tracking-tight">
-          <ShieldAlert className="w-6 h-6 text-red-600 dark:text-red-500 shrink-0" />
+        <h2 className="font-serif-display text-xl sm:text-3xl text-slate-900 dark:text-white font-bold flex items-center gap-2 tracking-tight">
+          <ShieldAlert className="w-5 h-5 sm:w-6 sm:h-6 text-red-600 dark:text-red-500 shrink-0" />
           <span>{t.safety.title}</span>
         </h2>
-        <p className="text-xs sm:text-sm text-slate-600 dark:text-slate-400 mt-0.5">
+        <p className="hidden sm:block text-sm text-slate-600 dark:text-slate-400 mt-0.5">
           {t.safety.subtitle}
         </p>
       </div>
@@ -105,10 +105,10 @@ export const SafetyView: React.FC<SafetyViewProps> = ({
           <button
             type="button"
             onClick={onOpenSOS}
-            className="w-full rounded-3xl bg-gradient-to-br from-red-50 via-red-100/70 to-red-50 dark:from-red-950/75 dark:via-red-900/50 dark:to-red-950/75 border-2 border-red-500/75 p-5 sm:p-6 text-center cursor-pointer shadow-lg hover:border-red-400 transition active:scale-[0.98]"
+            className="w-full rounded-3xl bg-gradient-to-br from-red-50 via-red-100/70 to-red-50 dark:from-red-950/75 dark:via-red-900/50 dark:to-red-950/75 border-2 border-red-500/75 p-4 sm:p-6 text-center cursor-pointer shadow-lg hover:border-red-400 transition active:scale-[0.98]"
           >
-            <div className="w-14 h-14 rounded-2xl bg-red-600 text-white flex items-center justify-center mx-auto mb-3 shadow-md">
-              <ShieldAlert className="w-8 h-8" />
+            <div className="w-12 h-12 sm:w-14 sm:h-14 rounded-2xl bg-red-600 text-white flex items-center justify-center mx-auto mb-2.5 sm:mb-3 shadow-md">
+              <ShieldAlert className="w-7 h-7 sm:w-8 sm:h-8" />
             </div>
             <span className="text-[10px] text-red-700 dark:text-red-400 font-extrabold uppercase tracking-widest block">
               {t.safety.beaconKicker}

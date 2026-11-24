@@ -54,8 +54,8 @@ export const Navigation: React.FC<NavigationProps> = ({
     ];
 
     return (
-      <nav className="lg:hidden fixed bottom-0 left-0 right-0 z-40 glass-chrome border-t border-white/60 dark:border-white/10 w-full pb-safe transition-colors duration-200">
-        <div className="flex items-center justify-around h-15 px-1 max-w-2xl mx-auto">
+      <nav className="lg:hidden fixed bottom-0 left-0 right-0 z-40 glass-chrome border-t border-white/60 dark:border-white/10 w-full pb-safe px-safe transition-colors duration-200">
+        <div className="flex items-center justify-around h-16 px-1 max-w-2xl mx-auto">
           {proTabs.map((tab) => {
             const isActive = activeProTab === tab.id;
             return (
@@ -99,8 +99,8 @@ export const Navigation: React.FC<NavigationProps> = ({
     ];
 
     return (
-      <nav className="lg:hidden fixed bottom-0 left-0 right-0 z-40 glass-chrome border-t border-white/60 dark:border-white/10 w-full pb-safe transition-colors duration-200">
-        <div className="flex items-center justify-around h-15 px-1 max-w-2xl mx-auto">
+      <nav className="lg:hidden fixed bottom-0 left-0 right-0 z-40 glass-chrome border-t border-white/60 dark:border-white/10 w-full pb-safe px-safe transition-colors duration-200">
+        <div className="flex items-center justify-around h-16 px-1 max-w-2xl mx-auto">
           {storeTabs.map((tab) => {
             const isActive = activeStoreTab === tab.id;
             return (
@@ -144,8 +144,8 @@ export const Navigation: React.FC<NavigationProps> = ({
   ];
 
   return (
-    <nav className="lg:hidden fixed bottom-0 left-0 right-0 z-40 glass-chrome border-t border-white/60 dark:border-white/10 w-full pb-safe transition-colors duration-200">
-      <div className="flex items-center justify-around h-15 px-1 max-w-2xl mx-auto">
+    <nav className="lg:hidden fixed bottom-0 left-0 right-0 z-40 glass-chrome border-t border-white/60 dark:border-white/10 w-full pb-safe px-safe transition-colors duration-200">
+      <div className="flex items-center justify-around h-16 px-1 max-w-2xl mx-auto">
         {tabs.map((tab) => {
           const isActive = activeTab === tab.id;
 

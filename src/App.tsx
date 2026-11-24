@@ -39,11 +39,13 @@ import {
   VendorOrderFulfillment,
   PublicExplorerProfile,
   SiteContribution,
+  SubmittedSite,
   DirectChat,
   DirectChatMessage,
 } from './types';
 import type { ProfileSubTab } from './components/views/ProfileView';
 import type { SiteContributionDraftInput } from './components/SiteContributionsSection';
+import type { SubmittedSiteDraftInput } from './components/SubmitSiteSection';
 import type { ChatRecipientTarget } from './components/PrivateChatSection';
 import { useLanguage } from './contexts/LanguageContext';
 import { useCart } from './contexts/CartContext';
@@ -68,6 +70,7 @@ import { RentalModal } from './components/RentalModal';
 import { NotificationCenterModal } from './components/NotificationCenterModal';
 import { EcoChallengeValidationModal } from './components/EcoChallengesSection';
 import { ExpeditionShareModal } from './components/ExpeditionShareModal';
+import { GoogleAuthHelpModal } from './components/GoogleAuthHelpModal';
 import { SplashScreen } from './components/SplashScreen';
 import { WorkspaceModeBar } from './components/WorkspaceModeBar';
 import { proProfileToExpertGuide } from './data/partnerSpecialties';
@@ -134,6 +137,10 @@ import { onAuthStateChanged, User } from 'firebase/auth';
 import {
   auth,
   signInWithGoogle,
+  signInWithGoogleRedirect,
+  consumeGoogleRedirectResult,
+  GoogleAuthDiagnosticError,
+  GoogleAuthIssueInfo,
   logoutUser,
   loadOrCreateUserProfile,
   updateUserProfileFields,
@@ -183,6 +190,10 @@ import {
   saveSiteContributionToFirestore,
   deleteSiteContributionFromFirestore,
   subscribeSiteContributions,
+  uploadSubmittedSitePhoto,
+  saveSubmittedSiteToFirestore,
+  deleteSubmittedSiteFromFirestore,
+  subscribeSubmittedSites,
   buildDirectChatId,
   uploadDirectChatPhoto,
   sendDirectChatMessage,
@@ -217,6 +228,19 @@ export default function App() {
 
   useEffect(() => {
     applyThemeToDocument(isDarkMode);
+    const capPlugins = (
+      window as unknown as {
+        Capacitor?: {
+          isNativePlatform?: () => boolean;
+          Plugins?: { SystemBars?: { setStyle?: (opts: { style: string }) => Promise<void> } };
+        };
+      }
+    ).Capacitor;
+    if (capPlugins?.isNativePlatform?.() && capPlugins.Plugins?.SystemBars?.setStyle) {
+      void capPlugins.Plugins.SystemBars.setStyle({
+        style: isDarkMode ? 'DARK' : 'LIGHT',
+      }).catch(() => {});
+    }
   }, [isDarkMode]);
 
   useEffect(() => {
@@ -276,6 +300,7 @@ export default function App() {
   const [communityActivities, setCommunityActivities] = useState<CommunityActivity[]>([]);
   const [communityChatMessages, setCommunityChatMessages] = useState<CommunityChatMessage[]>([]);
   const [siteContributions, setSiteContributions] = useState<SiteContribution[]>([]);
+  const [submittedSites, setSubmittedSites] = useState<SubmittedSite[]>([]);
   const [publicProfiles, setPublicProfiles] = useState<PublicExplorerProfile[]>([]);
   const [directChats, setDirectChats] = useState<DirectChat[]>([]);
   const [profileSubTab, setProfileSubTab] = useState<ProfileSubTab>('apercu');
@@ -392,8 +417,22 @@ export default function App() {
   const [firebaseUser, setFirebaseUser] = useState<User | null>(null);
   const [authReady, setAuthReady] = useState(false);
   const [isAuthLoading, setIsAuthLoading] = useState(false);
+  const [googleAuthIssue, setGoogleAuthIssue] = useState<GoogleAuthIssueInfo | null>(null);
 
   useEffect(() => {
+    void consumeGoogleRedirectResult().then(({ user: redirectedUser, error }) => {
+      if (redirectedUser) {
+        setGoogleAuthIssue(null);
+        showToast(
+          'Connexion Google Réussie',
+          `Bienvenue ${redirectedUser.displayName || redirectedUser.email} ! Données synchronisées.`
+        );
+      } else if (error) {
+        setGoogleAuthIssue(error.info);
+        showToast('Connexion Google', error.message);
+      }
+    });
+
     let unsubBookings: (() => void) | null = null;
     let unsubIncidents: (() => void) | null = null;
     let unsubReviews: (() => void) | null = null;
@@ -409,6 +448,7 @@ export default function App() {
     let unsubBusinessSettings: (() => void) | null = null;
     let unsubPublicProfiles: (() => void) | null = null;
     let unsubSiteContributions: (() => void) | null = null;
+    let unsubSubmittedSites: (() => void) | null = null;
     let unsubDirectChats: (() => void) | null = null;
 
     const unsubAuth = onAuthStateChanged(auth, async (fbUser) => {
@@ -471,6 +511,10 @@ export default function App() {
       if (unsubSiteContributions) {
         unsubSiteContributions();
         unsubSiteContributions = null;
+      }
+      if (unsubSubmittedSites) {
+        unsubSubmittedSites();
+        unsubSubmittedSites = null;
       }
       if (unsubDirectChats) {
         unsubDirectChats();
@@ -648,6 +692,13 @@ export default function App() {
             (err) => console.error('Firestore site contributions sync error:', err)
           );
 
+          unsubSubmittedSites = subscribeSubmittedSites(
+            (cloudSites) => {
+              setSubmittedSites(cloudSites);
+            },
+            (err) => console.error('Firestore submitted sites sync error:', err)
+          );
+
           unsubDirectChats = subscribeUserDirectChats(
             fbUser.uid,
             (cloudChats) => {
@@ -678,19 +729,54 @@ export default function App() {
       if (unsubBusinessSettings) unsubBusinessSettings();
       if (unsubPublicProfiles) unsubPublicProfiles();
       if (unsubSiteContributions) unsubSiteContributions();
+      if (unsubSubmittedSites) unsubSubmittedSites();
       if (unsubDirectChats) unsubDirectChats();
     };
   }, []);
 
   const handleSignInGoogle = async () => {
     setIsAuthLoading(true);
+    setGoogleAuthIssue(null);
     try {
       const signedIn = await signInWithGoogle();
-      showToast('Connexion Google Réussie', `Bienvenue ${signedIn.displayName || signedIn.email} ! Données synchronisées.`);
+      if (signedIn) {
+        showToast(
+          'Connexion Google Réussie',
+          `Bienvenue ${signedIn.displayName || signedIn.email} ! Données synchronisées.`
+        );
+      } else {
+        showToast('Connexion Google', 'Redirection vers Google en cours pour validation...');
+      }
     } catch (err: unknown) {
-      const msg = err instanceof Error ? err.message : 'Connexion annulée.';
-      showToast('Connexion Google', msg);
+      if (err instanceof GoogleAuthDiagnosticError) {
+        const code = err.info.code;
+        if (code === 'auth/popup-closed-by-user' || code === 'auth/cancelled-popup-request') {
+          showToast('Connexion Google', err.message);
+        } else {
+          setGoogleAuthIssue(err.info);
+          showToast('Connexion Google impossible', err.message);
+        }
+      } else {
+        const msg = err instanceof Error ? err.message : 'Connexion annulée.';
+        showToast('Connexion Google', msg);
+      }
     } finally {
+      setIsAuthLoading(false);
+    }
+  };
+
+  const handleRetryGoogleRedirect = async () => {
+    setIsAuthLoading(true);
+    try {
+      await signInWithGoogleRedirect();
+    } catch (err: unknown) {
+      if (err instanceof GoogleAuthDiagnosticError) {
+        setGoogleAuthIssue(err.info);
+        showToast('Connexion Google', err.message);
+      } else {
+        const msg = err instanceof Error ? err.message : 'Impossible de lancer la redirection Google.';
+        showToast('Connexion Google', msg);
+      }
       setIsAuthLoading(false);
     }
   };
@@ -711,6 +797,7 @@ export default function App() {
       setVendorOrders([]);
       setPublicProfiles([]);
       setSiteContributions([]);
+      setSubmittedSites([]);
       setDirectChats([]);
       setInitialChatRecipient(null);
       showToast('Déconnecté', 'Session Google fermée. Vos données restent sauvegardées sur Firestore.');
@@ -1385,6 +1472,56 @@ export default function App() {
     showToast('Contribution Supprimée', `"${item.title}" retirée du site.`);
   };
 
+  const handleSubmitNewSite = async (input: SubmittedSiteDraftInput) => {
+    if (!firebaseUser || !firebaseUser.emailVerified || !authReady) {
+      throw new Error('Connectez-vous avec Google pour soumettre un nouveau site.');
+    }
+    const siteId = `site-${Date.now()}-${Math.floor(100 + Math.random() * 900)}`;
+    let photoUrl: string | undefined;
+    let storagePath: string | undefined;
+
+    if (input.photoBlob) {
+      const uploaded = await uploadSubmittedSitePhoto(
+        firebaseUser.uid,
+        siteId,
+        input.photoBlob,
+        input.onUploadProgress
+      );
+      photoUrl = uploaded.downloadUrl;
+      storagePath = uploaded.storagePath;
+    }
+
+    const createdAtLabel = new Date().toLocaleDateString('fr-FR', {
+      day: '2-digit',
+      month: 'short',
+      year: 'numeric',
+    });
+
+    await saveSubmittedSiteToFirestore(firebaseUser.uid, {
+      id: siteId,
+      authorName: user.name || firebaseUser.displayName || 'Explorateur MANGOREMA',
+      authorAvatar: user.avatar || firebaseUser.photoURL || undefined,
+      siteName: input.siteName,
+      siteType: input.siteType,
+      province: input.province,
+      locationLabel: input.locationLabel,
+      difficulty: input.difficulty,
+      description: input.description,
+      photoUrl,
+      storagePath,
+      status: 'PENDING_REVIEW',
+      createdAtLabel,
+    });
+
+    showToast('Site Soumis', `"${input.siteName}" enregistré avec son type de site.`);
+  };
+
+  const handleDeleteSubmittedSite = async (site: SubmittedSite) => {
+    if (!firebaseUser || !firebaseUser.emailVerified || !authReady) return;
+    await deleteSubmittedSiteFromFirestore(site.id, site.storagePath);
+    showToast('Site Supprimé', `"${site.siteName}" a été retiré.`);
+  };
+
   const handleSendDirectChatMessage = async (params: {
     recipientUid: string;
     recipientName: string;
@@ -2047,7 +2184,7 @@ export default function App() {
     }));
 
   return (
-    <div className="relative min-h-screen text-slate-900 dark:text-slate-100 flex flex-col transition-colors duration-200">
+    <div className="relative w-full max-w-full min-h-[100dvh] overflow-x-clip text-slate-900 dark:text-slate-100 flex flex-col transition-colors duration-200">
       {/* Fixed Full-Bleed Gabonese Landscape Backdrop */}
       <div
         aria-hidden="true"
@@ -2076,7 +2213,7 @@ export default function App() {
 
       {/* Global Toast Notification */}
       {toastMsg && (
-        <div className="fixed top-16 left-1/2 -translate-x-1/2 z-50 w-11/12 max-w-sm glass-modal border border-amber-500/65 rounded-2xl p-3 flex items-center gap-3 animate-in fade-in slide-in-from-top-3">
+        <div className="fixed top-safe-toast left-1/2 -translate-x-1/2 z-[120] w-11/12 max-w-sm glass-modal border border-amber-500/65 rounded-2xl p-3 flex items-center gap-3 animate-in fade-in slide-in-from-top-3">
           <CheckCircle2 className="w-5 h-5 text-amber-600 dark:text-amber-400 shrink-0" />
           <div className="text-xs">
             <strong className="text-slate-900 dark:text-white block font-bold">{toastMsg.title}</strong>
@@ -2138,7 +2275,7 @@ export default function App() {
         onChangeLandscape={handleChangeLandscape}
       />
 
-      <div className="relative z-10 w-full max-w-6xl mx-auto bg-transparent flex-1 flex flex-col lg:border-x border-white/45 dark:border-white/10 transition-colors duration-200">
+      <div className="relative z-10 w-full max-w-6xl min-w-0 mx-auto bg-transparent flex-1 flex flex-col lg:border-x border-white/45 dark:border-white/10 transition-colors duration-200">
 
         {/* Urgent H-1 Departure Notification Banner (Local Web Notification Fallback & Visual Alert) */}
         {activeAlertBanner && (
@@ -2176,7 +2313,7 @@ export default function App() {
         )}
 
         {/* Main View Area */}
-        <main className="flex-1 overflow-y-auto no-scrollbar">
+        <main className="flex-1 w-full max-w-full min-w-0 overflow-y-auto overflow-x-clip no-scrollbar pb-nav-safe lg:pb-0 px-safe">
           <Suspense
             fallback={
               <div className="m-6 p-8 rounded-3xl glass-card border border-white/60 dark:border-white/15 text-center text-xs font-medium text-slate-700 dark:text-slate-300">
@@ -2509,6 +2646,9 @@ export default function App() {
                   siteContributions={siteContributions}
                   onPublishSiteContribution={handlePublishSiteContribution}
                   onDeleteSiteContribution={handleDeleteSiteContribution}
+                  submittedSites={submittedSites}
+                  onSubmitSite={handleSubmitNewSite}
+                  onDeleteSubmittedSite={handleDeleteSubmittedSite}
                   publicProfiles={publicProfiles}
                   proProfiles={proProfiles}
                   directChats={directChats}
@@ -2801,6 +2941,14 @@ export default function App() {
             />
           )}
         </Suspense>
+
+        <GoogleAuthHelpModal
+          issue={googleAuthIssue}
+          isLoading={isAuthLoading}
+          onClose={() => setGoogleAuthIssue(null)}
+          onRetryPopup={() => void handleSignInGoogle()}
+          onRetryRedirect={() => void handleRetryGoogleRedirect()}
+        />
 
       </div>
     </div>

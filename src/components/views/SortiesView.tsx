@@ -17,6 +17,8 @@ import {
   MapPin,
   Locate,
   Navigation,
+  SlidersHorizontal,
+  ChevronDown,
 } from 'lucide-react';
 import { CategoryIcon } from '../CategoryIcon';
 import { getEcoChallengeByEventId } from '../../data/ecoChallenges';
@@ -103,7 +105,13 @@ export const SortiesView: React.FC<SortiesViewProps> = ({
   const [searchQuery, setSearchQuery] = useState('');
   const [favoritesOnly, setFavoritesOnly] = useState(false);
   const [sortByProximity, setSortByProximity] = useState(false);
+  const [showMobileFilters, setShowMobileFilters] = useState(false);
   const [brokenImages, setBrokenImages] = useState<Record<string, boolean>>({});
+
+  const activeExtraFiltersCount =
+    (selectedDiscipline !== 'ALL' ? 1 : 0) +
+    (maxBudgetId !== 'ALL' ? 1 : 0) +
+    (sortByProximity && userGpsCoords ? 1 : 0);
 
   const enrichedEvents = useMemo(() => events.map(enrichEvent), [events]);
 
@@ -162,16 +170,16 @@ export const SortiesView: React.FC<SortiesViewProps> = ({
   ]);
 
   return (
-    <div className="space-y-6 p-4 sm:p-6 pb-24 lg:pb-12">
+    <div className="space-y-4 sm:space-y-6 px-3.5 py-4 sm:p-6 pb-24 lg:pb-12">
       {/* Header */}
-      <div className="flex flex-wrap items-center justify-between gap-3">
-        <div className="flex items-center gap-3 min-w-0">
+      <div className="flex flex-wrap items-center justify-between gap-2.5 sm:gap-3">
+        <div className="flex items-center gap-2.5 sm:gap-3 min-w-0">
           <CategoryIcon category="expeditions" size="md" />
           <div className="min-w-0">
-            <h2 className="font-serif-display text-xl sm:text-2xl text-slate-900 dark:text-white font-bold">
+            <h2 className="font-serif-display text-lg sm:text-2xl text-slate-900 dark:text-white font-bold truncate">
               {t.sorties.title}
             </h2>
-            <p className="text-xs text-slate-600 dark:text-slate-400">{t.sorties.subtitle}</p>
+            <p className="hidden sm:block text-xs text-slate-600 dark:text-slate-400">{t.sorties.subtitle}</p>
           </div>
         </div>
 
@@ -181,7 +189,7 @@ export const SortiesView: React.FC<SortiesViewProps> = ({
               type="button"
               onClick={onNavigateShuttles}
               title="Navettes mutualisées"
-              className="min-h-[44px] px-3 py-2 rounded-xl glass-card border border-white/60 dark:border-white/12 text-amber-700 dark:text-amber-400 text-xs font-bold flex items-center gap-1.5 active:scale-95 transition whitespace-nowrap"
+              className="min-h-[40px] sm:min-h-[44px] px-3 py-1.5 sm:py-2 rounded-xl glass-card border border-white/60 dark:border-white/12 text-amber-700 dark:text-amber-400 text-xs font-bold flex items-center gap-1.5 active:scale-95 transition whitespace-nowrap"
             >
               <Bus className="w-4 h-4 shrink-0" />
               <span className="hidden sm:inline">{t.home.poleShuttles}</span>
@@ -191,7 +199,7 @@ export const SortiesView: React.FC<SortiesViewProps> = ({
             <button
               type="button"
               onClick={() => onOpenCommunity('activities')}
-              className="min-h-[44px] px-3.5 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold flex items-center gap-1.5 transition active:scale-95 whitespace-nowrap"
+              className="min-h-[40px] sm:min-h-[44px] px-3 sm:px-3.5 py-1.5 sm:py-2 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold flex items-center gap-1.5 transition active:scale-95 whitespace-nowrap"
             >
               <MessageCircle className="w-3.5 h-3.5 shrink-0" />
               <span>{t.sorties.communityBtn}</span>
@@ -201,7 +209,7 @@ export const SortiesView: React.FC<SortiesViewProps> = ({
       </div>
 
       {/* Search & Favorites Row */}
-      <div className="flex gap-2.5">
+      <div className="flex gap-2">
         <div className="relative flex-1">
           <Search className="w-4 h-4 text-slate-500 dark:text-slate-400 absolute left-3.5 top-3.5" />
           <input
@@ -209,14 +217,14 @@ export const SortiesView: React.FC<SortiesViewProps> = ({
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             placeholder="Parc, randonnée, bivouac, guide..."
-            className="w-full min-h-[44px] glass-card border border-white/60 dark:border-white/12 rounded-2xl py-2.5 pl-10 pr-4 text-xs sm:text-sm text-slate-900 dark:text-white placeholder:text-slate-500 dark:placeholder:text-slate-400 focus:outline-none focus:border-amber-500"
+            className="w-full min-h-[42px] sm:min-h-[44px] glass-card border border-white/60 dark:border-white/12 rounded-2xl py-2 sm:py-2.5 pl-10 pr-4 text-xs sm:text-sm text-slate-900 dark:text-white placeholder:text-slate-500 dark:placeholder:text-slate-400 focus:outline-none focus:border-amber-500"
           />
         </div>
         {onToggleFavorite && (
           <button
             type="button"
             onClick={() => setFavoritesOnly((v) => !v)}
-            className={`min-h-[44px] px-3.5 py-2 rounded-2xl border text-xs font-bold flex items-center gap-1.5 shrink-0 transition whitespace-nowrap ${
+            className={`min-h-[42px] sm:min-h-[44px] px-3 sm:px-3.5 py-2 rounded-2xl border text-xs font-bold flex items-center gap-1.5 shrink-0 transition whitespace-nowrap ${
               favoritesOnly
                 ? 'bg-red-600 text-white border-red-600'
                 : 'glass-card border-white/60 dark:border-white/12 text-slate-800 dark:text-slate-200'
@@ -228,10 +236,12 @@ export const SortiesView: React.FC<SortiesViewProps> = ({
         )}
       </div>
 
-      {/* Activity GPS Localization Control Bar */}
+      {/* Activity GPS Localization Control Bar (Always shown on sm+, toggleable on mobile) */}
       {(onToggleActivityLocations || onActivateUserLocation) && (
         <div
-          className={`rounded-2xl p-3.5 border transition flex flex-wrap items-center justify-between gap-2.5 glass-card ${
+          className={`${
+            showMobileFilters ? 'flex' : 'hidden sm:flex'
+          } rounded-2xl p-3 sm:p-3.5 border transition flex-wrap items-center justify-between gap-2.5 glass-card ${
             showActivityLocations
               ? 'border-emerald-500/45'
               : 'border-white/60 dark:border-white/12'
@@ -313,8 +323,8 @@ export const SortiesView: React.FC<SortiesViewProps> = ({
         </div>
       )}
 
-      {/* Thematic Collections */}
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5">
+      {/* Thematic Collections (Horizontal snap rail on mobile, 3-col grid on sm+) */}
+      <div className="flex sm:grid sm:grid-cols-3 gap-2.5 overflow-x-auto sm:overflow-visible snap-x snap-mandatory sm:snap-none no-scrollbar pb-0.5 sm:pb-0">
         {ACTIVITY_COLLECTIONS.map((col) => {
           const active = selectedCollection === col.id;
           return (
@@ -322,7 +332,7 @@ export const SortiesView: React.FC<SortiesViewProps> = ({
               key={col.id}
               type="button"
               onClick={() => setSelectedCollection(active ? 'ALL' : col.id)}
-              className={`min-h-[44px] text-left p-3.5 rounded-2xl border transition ${
+              className={`min-w-[210px] sm:min-w-0 shrink-0 snap-start min-h-[44px] text-left p-3 sm:p-3.5 rounded-2xl border transition ${
                 active
                   ? 'glass-card border-amber-500/75 ring-1 ring-amber-500/35'
                   : 'glass-card border-white/60 dark:border-white/12 hover:border-amber-500/45'
@@ -334,7 +344,7 @@ export const SortiesView: React.FC<SortiesViewProps> = ({
               <strong className="text-xs sm:text-sm text-slate-900 dark:text-white block truncate mt-0.5">
                 {col.title}
               </strong>
-              <span className="text-[11px] text-slate-600 dark:text-slate-400 block truncate mt-0.5">
+              <span className="hidden sm:block text-[11px] text-slate-600 dark:text-slate-400 truncate mt-0.5">
                 {col.subtitle}
               </span>
             </button>
@@ -344,13 +354,35 @@ export const SortiesView: React.FC<SortiesViewProps> = ({
 
       {/* Interactive Filter Controls */}
       <div className="space-y-2">
-        <div className="flex gap-1.5 overflow-x-auto no-scrollbar py-0.5">
+        <div className="flex items-center gap-1.5 overflow-x-auto no-scrollbar py-0.5">
+          <button
+            type="button"
+            onClick={() => setShowMobileFilters((v) => !v)}
+            aria-expanded={showMobileFilters}
+            className={`sm:hidden min-h-[38px] px-3 py-1.5 rounded-xl text-xs font-bold whitespace-nowrap shrink-0 flex items-center gap-1.5 border transition ${
+              showMobileFilters || activeExtraFiltersCount > 0
+                ? 'bg-emerald-600 text-white border-emerald-500 shadow-sm'
+                : 'glass-card border-white/60 dark:border-white/12 text-slate-800 dark:text-slate-200'
+            }`}
+          >
+            <SlidersHorizontal className="w-3.5 h-3.5" />
+            <span>Filtres & GPS</span>
+            {activeExtraFiltersCount > 0 && (
+              <span className="font-mono text-[10px] px-1.5 py-0.5 rounded-full bg-black/20">
+                {activeExtraFiltersCount}
+              </span>
+            )}
+            <ChevronDown
+              className={`w-3.5 h-3.5 transition-transform ${showMobileFilters ? 'rotate-180' : ''}`}
+            />
+          </button>
+
           {categories.map((c) => (
             <button
               key={c.id}
               type="button"
               onClick={() => setSelectedCategory(c.id)}
-              className={`min-h-[40px] px-3.5 py-1.5 rounded-xl text-xs font-semibold whitespace-nowrap shrink-0 transition ${
+              className={`min-h-[38px] sm:min-h-[40px] px-3.5 py-1.5 rounded-xl text-xs font-semibold whitespace-nowrap shrink-0 transition ${
                 selectedCategory === c.id
                   ? 'copper-gradient text-slate-950 font-bold shadow-sm'
                   : 'glass-card border border-white/60 dark:border-white/12 text-slate-700 dark:text-slate-200 hover:text-slate-950 dark:hover:text-white'
@@ -361,7 +393,11 @@ export const SortiesView: React.FC<SortiesViewProps> = ({
           ))}
         </div>
 
-        <div className="flex gap-1.5 overflow-x-auto no-scrollbar py-0.5">
+        <div
+          className={`${
+            showMobileFilters ? 'flex' : 'hidden sm:flex'
+          } gap-1.5 overflow-x-auto no-scrollbar py-0.5`}
+        >
           {DISCIPLINES.map((d) => (
             <button
               key={d.id}

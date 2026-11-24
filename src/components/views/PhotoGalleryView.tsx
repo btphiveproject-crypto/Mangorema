@@ -445,18 +445,18 @@ export const PhotoGalleryView: React.FC<PhotoGalleryViewProps> = ({
   ];
 
   return (
-    <div className="space-y-6 p-4 sm:p-6 pb-24 lg:pb-12">
+    <div className="space-y-4 sm:space-y-6 px-3.5 py-4 sm:p-6 pb-24 lg:pb-12">
       {/* Editorial Gallery Header */}
-      <section className="glass-card border border-white/60 dark:border-white/12 rounded-3xl p-5 sm:p-7 space-y-5">
-        <div className="flex flex-col md:flex-row md:items-end justify-between gap-4">
-          <div className="space-y-1.5 min-w-0 max-w-2xl">
-            <p className="text-xs font-semibold text-amber-700 dark:text-amber-400">
+      <section className="glass-card border border-white/60 dark:border-white/12 rounded-3xl p-4 sm:p-7 space-y-3.5 sm:space-y-5">
+        <div className="flex flex-col md:flex-row md:items-end justify-between gap-3 sm:gap-4">
+          <div className="space-y-1 min-w-0 max-w-2xl">
+            <p className="text-[11px] sm:text-xs font-semibold text-amber-700 dark:text-amber-400">
               {t.gallery.kicker}
             </p>
-            <h1 className="font-serif-display text-2xl sm:text-3xl font-normal text-slate-900 dark:text-white tracking-tight text-balance">
+            <h1 className="font-serif-display text-xl sm:text-3xl font-normal text-slate-900 dark:text-white tracking-tight text-balance">
               {t.gallery.title}
             </h1>
-            <p className="text-xs sm:text-sm text-slate-700 dark:text-slate-300 leading-relaxed">
+            <p className="hidden sm:block text-sm text-slate-700 dark:text-slate-300 leading-relaxed">
               {t.gallery.subtitle}
             </p>
           </div>
@@ -504,7 +504,7 @@ export const PhotoGalleryView: React.FC<PhotoGalleryViewProps> = ({
         </div>
 
         {/* Filter & Search Bar */}
-        <div className="pt-4 border-t border-slate-900/10 dark:border-white/10 space-y-3">
+        <div className="pt-3 sm:pt-4 border-t border-slate-900/10 dark:border-white/10 space-y-2.5 sm:space-y-3">
           <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-3">
             {/* Segmented Collection Filter */}
             <div className="flex items-center gap-1 p-1 glass-surface border border-white/60 dark:border-white/10 rounded-xl overflow-x-auto no-scrollbar">
@@ -904,7 +904,7 @@ export const PhotoGalleryView: React.FC<PhotoGalleryViewProps> = ({
       {/* Fullscreen Photo Lightbox with Prev/Next Navigation */}
       {activeLightboxItem && lightboxIndex !== null && (
         <div
-          className="fixed inset-0 z-50 bg-black/95 backdrop-blur-md flex flex-col justify-between p-4 sm:p-6 animate-in fade-in"
+          className="fixed inset-0 z-50 bg-black/95 backdrop-blur-md flex flex-col justify-between p-4 sm:p-6 pt-[calc(1rem+var(--safe-top))] pb-[calc(1rem+var(--safe-bottom))] px-safe animate-in fade-in"
           onClick={() => setLightboxIndex(null)}
         >
           {/* Top Bar */}

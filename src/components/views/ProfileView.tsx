@@ -12,6 +12,7 @@ import {
   MarketplaceOrder,
   SiteContribution,
   SiteContributionType,
+  SubmittedSite,
   PublicExplorerProfile,
   ProfessionalProfile,
   DirectChat,
@@ -35,6 +36,7 @@ import { BookingDetailModal } from '../BookingDetailModal';
 import { ExpeditionShareModal } from '../ExpeditionShareModal';
 import { AdventureLogbookSection } from '../AdventureLogbookSection';
 import { SiteContributionsSection, SiteContributionDraftInput } from '../SiteContributionsSection';
+import { SubmitSiteSection, SubmittedSiteDraftInput } from '../SubmitSiteSection';
 import { PrivateChatSection, ChatRecipientTarget } from '../PrivateChatSection';
 import { MediaCaptureBox } from '../MediaCaptureBox';
 import { GABON_SITES_CATALOG } from '../../data/gabonSites';
@@ -114,6 +116,9 @@ interface ProfileViewProps {
   siteContributions?: SiteContribution[];
   onPublishSiteContribution?: (input: SiteContributionDraftInput) => Promise<void>;
   onDeleteSiteContribution?: (item: SiteContribution) => Promise<void>;
+  submittedSites?: SubmittedSite[];
+  onSubmitSite?: (input: SubmittedSiteDraftInput) => Promise<void>;
+  onDeleteSubmittedSite?: (site: SubmittedSite) => Promise<void>;
   publicProfiles?: PublicExplorerProfile[];
   proProfiles?: ProfessionalProfile[];
   directChats?: DirectChat[];
@@ -179,6 +184,9 @@ export const ProfileView: React.FC<ProfileViewProps> = ({
   siteContributions = [],
   onPublishSiteContribution,
   onDeleteSiteContribution,
+  submittedSites = [],
+  onSubmitSite,
+  onDeleteSubmittedSite,
   onChangeSubscription,
   publicProfiles = [],
   proProfiles = [],
@@ -202,7 +210,22 @@ export const ProfileView: React.FC<ProfileViewProps> = ({
   };
 
   const [contribScope, setContribScope] = useState<'all' | 'mine'>('all');
+  const [submitSiteSignal, setSubmitSiteSignal] = useState(0);
   const [localChatRecipient, setLocalChatRecipient] = useState<ChatRecipientTarget | null>(null);
+
+  const handleOpenSubmitSite = () => {
+    setCurrentSubTab('contributions');
+    setSubmitSiteSignal((prev) => prev + 1);
+  };
+
+  const submitSiteBtnLabel =
+    lang === 'en' ? 'Submit site' : lang === 'ar' ? 'إرسال موقع' : 'Soumettre site';
+  const submitSiteSubLabel =
+    lang === 'en'
+      ? 'Propose a site & define its type'
+      : lang === 'ar'
+      ? 'اقترح موقعاً وحدد نوعه'
+      : 'Définir le type de site';
 
   // Profile Editor modal state
   const [isEditProfileOpen, setIsEditProfileOpen] = useState(false);
@@ -396,12 +419,12 @@ export const ProfileView: React.FC<ProfileViewProps> = ({
     : 0;
 
   return (
-    <div className="space-y-6 p-4 sm:p-6 pb-24 lg:pb-12">
+    <div className="w-full max-w-full min-w-0 space-y-4 sm:space-y-6 px-3.5 py-4 sm:p-6 pb-24 lg:pb-12">
       {/* HERO PROFIL EXPLORATEUR & NAVIGATION PAR ONGLETS */}
-      <div className="glass-card rounded-3xl p-5 sm:p-6 space-y-5 relative overflow-hidden">
-        <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-5">
+      <div className="glass-card rounded-3xl p-3.5 sm:p-6 space-y-3.5 sm:space-y-5 relative overflow-hidden w-full min-w-0">
+        <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4 sm:gap-5 min-w-0">
           {/* Identité & Bio */}
-          <div className="flex flex-col sm:flex-row sm:items-center gap-4 min-w-0">
+          <div className="flex flex-col sm:flex-row sm:items-center gap-3.5 sm:gap-4 min-w-0">
             <div className="relative inline-block self-start sm:self-center shrink-0">
               <img
                 src={sanitizeImageUrl(user.avatar, {
@@ -409,23 +432,23 @@ export const ProfileView: React.FC<ProfileViewProps> = ({
                 })}
                 alt={user.name}
                 referrerPolicy="no-referrer"
-                className="w-20 h-20 sm:w-24 sm:h-24 rounded-full border-2 border-amber-500 object-cover shadow-lg"
+                className="w-16 h-16 sm:w-24 sm:h-24 rounded-full border-2 border-amber-500 object-cover shadow-lg"
               />
               {onUpdateProfileDetails && (
                 <button
                   type="button"
                   onClick={openProfileEditor}
-                  className="absolute -bottom-1 -end-1 w-8 h-8 rounded-full copper-gradient text-white border-2 border-white dark:border-slate-900 flex items-center justify-center shadow-md hover:brightness-110 transition"
+                  className="absolute -bottom-1 -end-1 w-7 h-7 sm:w-8 sm:h-8 rounded-full copper-gradient text-white border-2 border-white dark:border-slate-900 flex items-center justify-center shadow-md hover:brightness-110 transition"
                   aria-label={t.profile.editProfileBtn}
                 >
-                  <Camera className="w-4 h-4" />
+                  <Camera className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
                 </button>
               )}
             </div>
 
-            <div className="space-y-1.5 min-w-0">
+            <div className="space-y-1.5 min-w-0 flex-1">
               <div className="flex flex-wrap items-center gap-2">
-                <h2 className="font-serif-display text-xl sm:text-2xl text-slate-900 dark:text-white font-extrabold tracking-tight truncate">
+                <h2 className="font-serif-display text-lg sm:text-2xl text-slate-900 dark:text-white font-extrabold tracking-tight truncate max-w-full">
                   {user.name}
                 </h2>
                 {onUpdateProfileDetails && (
@@ -438,16 +461,26 @@ export const ProfileView: React.FC<ProfileViewProps> = ({
                     <span>{t.profile.editProfileBtn}</span>
                   </button>
                 )}
+                {onSubmitSite && (
+                  <button
+                    type="button"
+                    onClick={handleOpenSubmitSite}
+                    className="px-2.5 py-1 rounded-xl copper-gradient text-slate-950 text-[11px] font-black flex items-center gap-1 shadow-sm hover:brightness-105 active:scale-95 transition whitespace-nowrap"
+                  >
+                    <MapPin className="w-3 h-3 shrink-0" />
+                    <span>{submitSiteBtnLabel}</span>
+                  </button>
+                )}
               </div>
 
-              <p className="text-xs font-bold text-amber-700 dark:text-amber-400">
+              <p className="text-xs font-bold text-amber-700 dark:text-amber-400 break-words">
                 {user.role}
                 {user.homeCity ? ` · ${user.homeCity}` : ''}
                 {user.favoritePark ? ` · ${user.favoritePark}` : ''}
               </p>
 
               {user.bio ? (
-                <p className="text-xs text-slate-700 dark:text-slate-200 leading-relaxed max-w-2xl">
+                <p className="text-xs text-slate-700 dark:text-slate-200 leading-relaxed max-w-2xl break-words">
                   {user.bio}
                 </p>
               ) : (
@@ -465,29 +498,29 @@ export const ProfileView: React.FC<ProfileViewProps> = ({
           </div>
 
           {/* Metrics & Google Sync Compact */}
-          <div className="flex flex-col sm:flex-row lg:flex-col items-stretch sm:items-center lg:items-end gap-3 shrink-0">
-            <div className="grid grid-cols-3 divide-x divide-stone-200 dark:divide-white/10 glass-surface rounded-2xl px-3 py-2.5 text-center">
-              <div className="px-3">
-                <span className="text-sm sm:text-base font-black text-amber-700 dark:text-amber-400 block font-mono tabular-nums">
+          <div className="flex flex-col sm:flex-row lg:flex-col items-stretch sm:items-center lg:items-end gap-3 shrink-0 min-w-0">
+            <div className="grid grid-cols-3 divide-x divide-stone-200 dark:divide-white/10 border-y sm:border-y-0 border-stone-200/70 dark:border-white/10 py-2 sm:py-1 text-center w-full sm:w-auto">
+              <div className="px-1.5 sm:px-3 min-w-0">
+                <span className="text-sm sm:text-base font-black text-amber-700 dark:text-amber-400 block font-mono tabular-nums truncate">
                   {user.totalKm}
                 </span>
-                <span className="text-[10px] text-slate-600 dark:text-slate-400 block">{t.profile.metricKm}</span>
+                <span className="text-[10px] text-slate-600 dark:text-slate-400 block truncate">{t.profile.metricKm}</span>
               </div>
-              <div className="px-3">
-                <span className="text-sm sm:text-base font-black text-emerald-700 dark:text-emerald-400 block font-mono tabular-nums">
+              <div className="px-1.5 sm:px-3 min-w-0">
+                <span className="text-sm sm:text-base font-black text-emerald-700 dark:text-emerald-400 block font-mono tabular-nums truncate">
                   +{user.totalAscent}m
                 </span>
-                <span className="text-[10px] text-slate-600 dark:text-slate-400 block">{t.profile.metricAscent}</span>
+                <span className="text-[10px] text-slate-600 dark:text-slate-400 block truncate">{t.profile.metricAscent}</span>
               </div>
-              <div className="px-3">
-                <span className="text-sm sm:text-base font-black text-slate-900 dark:text-white block font-mono tabular-nums">
+              <div className="px-1.5 sm:px-3 min-w-0">
+                <span className="text-sm sm:text-base font-black text-slate-900 dark:text-white block font-mono tabular-nums truncate">
                   {user.stepsCount.toLocaleString(numberLocale)}
                 </span>
-                <span className="text-[10px] text-slate-600 dark:text-slate-400 block">{t.profile.metricSteps}</span>
+                <span className="text-[10px] text-slate-600 dark:text-slate-400 block truncate">{t.profile.metricSteps}</span>
               </div>
             </div>
 
-            <div className="flex items-center justify-end gap-2">
+            <div className="flex flex-wrap items-center justify-end gap-2">
               {authUser ? (
                 <>
                   <span className="text-[11px] font-bold text-emerald-700 dark:text-emerald-300 flex items-center gap-1.5 glass-surface px-3 py-1.5 rounded-xl">
@@ -564,7 +597,7 @@ export const ProfileView: React.FC<ProfileViewProps> = ({
                 key={tab.id}
                 type="button"
                 onClick={() => setCurrentSubTab(tab.id)}
-                className={`px-3.5 py-2.5 rounded-2xl text-xs font-bold flex items-center gap-2 transition-all whitespace-nowrap min-h-[42px] border ${
+                className={`px-3 sm:px-3.5 py-2 sm:py-2.5 rounded-2xl text-xs font-bold flex items-center gap-1.5 sm:gap-2 transition-all whitespace-nowrap min-h-[40px] sm:min-h-[42px] border shrink-0 ${
                   isActive
                     ? 'copper-gradient text-slate-950 border-amber-400 shadow-md'
                     : 'glass-surface text-slate-700 dark:text-slate-200 border-white/25 hover:bg-white/60 dark:hover:bg-white/10'
@@ -1038,6 +1071,29 @@ export const ProfileView: React.FC<ProfileViewProps> = ({
             </div>
             <ChevronRight className="w-4 h-4 text-slate-400 shrink-0 rtl:rotate-180" />
           </button>
+
+          {onSubmitSite && (
+            <button
+              type="button"
+              onClick={handleOpenSubmitSite}
+              className="p-3 rounded-2xl bg-amber-500/12 border border-amber-500/40 hover:border-amber-500 text-start flex items-center justify-between gap-3 transition"
+            >
+              <div className="flex items-center gap-2.5 min-w-0">
+                <div className="w-9 h-9 rounded-xl copper-gradient text-slate-950 flex items-center justify-center shrink-0">
+                  <MapPin className="w-4 h-4" />
+                </div>
+                <div className="min-w-0">
+                  <strong className="text-xs font-black text-slate-900 dark:text-white block truncate">
+                    {submitSiteBtnLabel}
+                  </strong>
+                  <span className="text-[10px] text-amber-800 dark:text-amber-300 block truncate">
+                    {submitSiteSubLabel} · {submittedSites.length}
+                  </span>
+                </div>
+              </div>
+              <ChevronRight className="w-4 h-4 text-amber-600 dark:text-amber-400 shrink-0 rtl:rotate-180" />
+            </button>
+          )}
         </div>
       </div>
 
@@ -1108,6 +1164,18 @@ export const ProfileView: React.FC<ProfileViewProps> = ({
                 {t.profile.myContributions} ({ownContributionsCount})
               </button>
             </div>
+          )}
+
+          {onSubmitSite && onDeleteSubmittedSite && (
+            <SubmitSiteSection
+              submittedSites={submittedSites}
+              authUser={authUser ?? null}
+              userProfile={user}
+              openComposerSignal={submitSiteSignal}
+              onSignInGoogle={() => onSignInGoogle?.()}
+              onSubmitSite={onSubmitSite}
+              onDeleteSubmittedSite={onDeleteSubmittedSite}
+            />
           )}
 
           {onPublishSiteContribution && onDeleteSiteContribution && (
